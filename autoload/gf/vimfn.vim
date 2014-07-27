@@ -9,6 +9,7 @@ let s:FUNCTYPE = {
 \   'GLOBAL'   : 2,
 \   'LOCAL'    : 3,
 \   'SCRIPT'   : 4,
+\   'SNR'      : 5,
 \}
 
 function! s:SID(...)
@@ -47,6 +48,9 @@ function! s:funcType(fn)
     if fn =~ '\v^\c\<sid\>'
         return _.SCRIPT
     endif
+    if fn =~ '\v^\c\<snr\>'
+        return _.SNR
+    endif
     if fn =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'
         return _.GLOBAL
     endif
@@ -68,8 +72,12 @@ function! s:findPath(fn, fntype)
     if type is _.AUTOLOAD
         let t = filter(map(s:aFnToPath(fn), 'globpath(&rtp, v:val)'), '!empty(v:val)')
         return empty(t) ? '' : split(t[0], '\v\r\n|\n')[0]
-    elseif type is _.GLOBAL
-        return matchstr(split(s:getOutPutText('1verbose function ' . fn), '\v\r\n|\n')[1], '\v\f+$')
+    elseif type is _.GLOBAL || type is _.SNR
+        if exists('*' . fn)
+            return matchstr(split(s:getOutPutText('1verbose function ' . fn), '\v\r\n|\n')[1], '\v\f+$')
+        else
+            return 0
+        endif
     elseif type is _.LOCAL
         return '%'
     elseif type is _.SCRIPT
@@ -78,14 +86,17 @@ function! s:findPath(fn, fntype)
 endfunction
 
 function! s:serchFnPos(lines, fn, fntype)
+    let _ = s:FUNCTYPE
     let lines = a:lines
     let line = len(lines)
-    if a:fntype is s:FUNCTYPE.SCRIPT
-        let fn = substitute(a:fn, '\v\c(s:|\<sid\>)', '\\c(s:|\\<sid\\>)\\C', '')
+    if a:fntype is _.SCRIPT
+        let fn = substitute(a:fn, '\v(\Cs:|\<\csid\>)', '(\\Cs:|\\<\\csid\\>)\\C', '')
+    elseif a:fntype is _.SNR
+        let fn = substitute(a:fn, '\v\<\csnr\>\d+_', 's:', '')
     else
         let fn = a:fn
     endif
-    let reg = '\v\C^\s*fu%[nction\!]\s+' . fn . '\s*\('
+    let reg = '\v^\s*\Cfu%[nction\!]\s+' . fn . '\s*\('
 
     while line
         let line -= 1
@@ -121,7 +132,7 @@ function! s:cfile()
 endfunction
 
 function! s:pickFname(str)
-    return matchstr(a:str, '\v(\c\<sid\>)?[a-zA-Z0-9#_:]+')
+    return matchstr(a:str, '\v(\c\<(sid|snr)\>)?[a-zA-Z0-9#_:.]+')
 endfunction
 
 function! s:pickUp()
@@ -140,6 +151,9 @@ function! s:find(str)
         return 0
     endif
     let path = s:findPath(fn, fnt)
+    if path is 0
+        return 0
+    endif
     let pos = s:getFnPos(path, fn, fnt)
     if path is '%'
         if pos is 0

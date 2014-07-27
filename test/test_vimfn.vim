@@ -22,6 +22,7 @@ function! s:getTestData()
     let _G = _.GLOBAL
     let _L = _.LOCAL
     let _S = _.SCRIPT
+    let _R = _.SNR
     " g:func -> 0
     " func -> 0
     let tests = [
@@ -32,6 +33,10 @@ function! s:getTestData()
     \   ['g:func'     , 0] , ['g:Func'   , _G], ['Func'      , _G], ['g:F_u_n_c'   , _G],
     \   ['prefix#func', _A], ['a#b#func' , _A], ['a#B#Func'  , _A], ['a_b#c_d#e_f' , _A],
     \   ['fnfnfn'     , 0] ,
+    \   ['<snr>1_func' , _R], ['<snr>1_Func' , _R], ['<snr>1__func' , _R], ['<snr>1_f_u_n_c' , _R],
+    \   ['<snr>11_func', _R], ['<snr>11_Func', _R], ['<snr>11__func', _R], ['<snr>11_f_u_n_c', _R],
+    \   ['<SNR>1_func' , _R], ['<SNR>1_Func' , _R], ['<SNR>1__func' , _R], ['<SNR>1_f_u_n_c' , _R],
+    \   ['<SNR>11_func', _R], ['<SNR>11_Func', _R], ['<SNR>11__func', _R], ['<SNR>11_f_u_n_c', _R],
     \]
     return tests
 endfunction
