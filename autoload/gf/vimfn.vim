@@ -42,7 +42,7 @@ function! s:funcType(fn)
     if fn =~ '\v^\c\<sid\>'
         return _.SCRIPT
     endif
-    if fn =~ '\v\C^[A-Z][a-zA-Z0-9_]*$'
+    if fn =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'
         return _.GLOBAL
     endif
     if fn =~ '\v\a+#\a'
@@ -56,9 +56,9 @@ function! s:aFnToPath(afn)
     return ['autoload/' . t, 'plugin/' . t]
 endfunction
 
-function! s:findPath(type, fn)
+function! s:findPath(fn, fntype)
     let fn = a:fn
-    let type = a:type
+    let type = a:fntype
     let _ = s:FUNCTYPE
     if type is _.AUTOLOAD
         let t = filter(map(s:aFnToPath(fn), 'globpath(&rtp, v:val)'), '!empty(v:val)')
@@ -72,11 +72,15 @@ function! s:findPath(type, fn)
     endif
 endfunction
 
-function! s:getFnPos(path, fn)
-    let reg = '\v\C^\s*fu%[nction\!]\s+' . a:fn . '\s*\('
-    let isbuf = a:path is '%'
-    let lines = isbuf ? getline(1, '$') : readfile(a:path)
+function! s:serchFnPos(lines, fn, fntype)
+    let lines = a:lines
     let line = len(lines)
+    if a:fntype is s:FUNCTYPE.SCRIPT
+        let fn = substitute(a:fn, '\v\c(s:|\<sid\>)', '\\c(s:|\\<sid\\>)\\C', '')
+    else
+        let fn = a:fn
+    endif
+    let reg = '\v\C^\s*fu%[nction\!]\s+' . fn . '\s*\('
 
     while line
         let line -= 1
@@ -85,7 +89,14 @@ function! s:getFnPos(path, fn)
             return {'line' : line + 1, 'col' : col}
         endif
     endwhile
-    return isbuf ? 0 : {'line' : 1, 'col' : 1}
+
+    return 0
+endfunction
+
+function! s:getFnPos(path, fn, fntype)
+    let isbuf = a:path is '%'
+    let lines = isbuf ? getline(1, '$') : readfile(a:path)
+    return s:serchFnPos(lines, a:fn, a:fntype)
 endfunction
 
 function! s:cfile()
@@ -123,12 +134,8 @@ function! s:find(str)
     if fnt is 0
         return 0
     endif
-    let path = s:findPath(fnt, fn)
-    if fnt is s:FUNCTYPE.SCRIPT
-        let fn = substitute(fn, '\v\c(s:|\<sid\>)', '\\c(s:|\\<sid\\>)\\C', '')
-        "echoe fn
-    endif
-    let pos = s:getFnPos(path, fn)
+    let path = s:findPath(fn, fnt)
+    let pos = s:getFnPos(path, fn, fnt)
     if path is '%'
         if pos is 0
             return 0

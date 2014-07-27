@@ -16,15 +16,12 @@ function! s:var(name)
     return s:func('_getVar')(a:name)
 endfunction
 
-function! s:suite.test_funcType()
+function! s:getTestData()
     let _ = s:var('FUNCTYPE')
     let _A = _.AUTOLOAD
     let _G = _.GLOBAL
     let _L = _.LOCAL
     let _S = _.SCRIPT
-
-    let FuncType = s:func('funcType')
-
     " g:func -> 0
     " func -> 0
     let tests = [
@@ -36,6 +33,13 @@ function! s:suite.test_funcType()
     \   ['prefix#func', _A], ['a#b#func' , _A], ['a#B#Func'  , _A], ['a_b#c_d#e_f' , _A],
     \   ['fnfnfn'     , 0] ,
     \]
+    return tests
+endfunction
+
+function! s:suite.test_funcType()
+
+    let FuncType = s:func('funcType')
+    let tests = s:getTestData()
 
     for test in tests
         let input = test[0]
@@ -108,7 +112,7 @@ function! s:suite.test_pickUp()
 endfunction
 
 function! s:suite.test_aFnToPath()
-    let AaFnToPath = s:func('aFnToPath')
+    let AFnToPath = s:func('aFnToPath')
 
     let tests = [
     \ ['vimproc#system',
@@ -122,7 +126,7 @@ function! s:suite.test_aFnToPath()
     for test in tests
         let input = test[0]
         let a_pathes = test[1]
-        let r_pathes = AaFnToPath(input)
+        let r_pathes = AFnToPath(input)
 
         " test test
         call s:assert.is_string(input)
@@ -132,6 +136,60 @@ function! s:suite.test_aFnToPath()
         call s:assert.equals(a_pathes, r_pathes)
     endfor
 
+endfunction
+
+function! s:suite.test_findPath_localFunc()
+    let FindPath = s:func('findPath')
+    let FuncType = s:func('funcType')
+    let _ = s:var('FUNCTYPE')
+    let tests = filter(s:getTestData(), 'v:val[1] is _.LOCAL || v:val[1] is _.SCRIPT')
+    call map(tests, 'v:val[0]')
+
+    for test in tests
+        call s:assert.equals(FindPath(test, FuncType(test)), '%')
+    endfor
+endfunction
+
+function! s:suite.test_searchFnPos()
+    let SearchFnPos = s:func('serchFnPos')
+    let _S = s:var('FUNCTYPE').SCRIPT
+    let lines = [
+    \   'function s:func1()',
+    \   'function! s:func2()',
+    \   'function! s:func3 ()',
+    \   'function! <sid>func4 ()',
+    \   'function! <SID>func5 ()',
+    \   '   function! <SID>func6 ()',
+    \   'function! l:func7 ()',
+    \   '   function! l:func8 ()',
+    \   '	function! s:func9 ()',
+    \   '"function func10()',
+    \]
+    let tests = [
+    \   ['s:func1',    {'line' : 1, 'col' : 1}],
+    \   ['s:func2',    {'line' : 2, 'col' : 1}],
+    \   ['s:func3',    {'line' : 3, 'col' : 1}],
+    \   ['s:func4',    {'line' : 4, 'col' : 1}],
+    \   ['s:func5',    {'line' : 5, 'col' : 1}],
+    \   ['<sid>func1', {'line' : 1, 'col' : 1}],
+    \   ['<sid>func2', {'line' : 2, 'col' : 1}],
+    \   ['<sid>func3', {'line' : 3, 'col' : 1}],
+    \   ['<sid>func4', {'line' : 4, 'col' : 1}],
+    \   ['<sid>func5', {'line' : 5, 'col' : 1}],
+    \   ['<SID>func1', {'line' : 1, 'col' : 1}],
+    \   ['<SID>func2', {'line' : 2, 'col' : 1}],
+    \   ['<SID>func3', {'line' : 3, 'col' : 1}],
+    \   ['<SID>func4', {'line' : 4, 'col' : 1}],
+    \   ['<SID>func5', {'line' : 5, 'col' : 1}],
+    \   ['s:func6', {'line' : 6, 'col' : 1}],
+    \   ['l:func7', {'line' : 7, 'col' : 1}],
+    \   ['l:func8', {'line' : 8, 'col' : 1}],
+    \   ['s:func9', {'line' : 9, 'col' : 1}],
+    \   ['<SID>func10', 0],
+    \]
+    for test in tests
+        call s:assert.equals(SearchFnPos(lines, test[0], _S), test[1])
+    endfor
 endfunction
 
 function! s:suite.test_find()
