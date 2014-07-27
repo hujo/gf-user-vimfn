@@ -155,8 +155,17 @@ function! gf#{s:NS}#sid(...)
     return call(function('s:SID'), a:000)
 endfunction
 
-function! gf#{s:NS}#find()
+function! gf#{s:NS}#find(...)
     return s:isEnable() ? s:find(s:pickUp()) : 0
+endfunction
+
+function! gf#{s:NS}#open(...)
+    let data = s:find(get(a:000, 0, ''))
+    if data isnot 0
+        let act = get(g:, 'gf_vimfn_open_action', 'tab drop')
+        exe act data.path
+        call cursor(data.line, data.col)
+    endif
 endfunction
 
 let &cpo = s:save_cpo
