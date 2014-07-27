@@ -3,7 +3,7 @@ scriptencoding utf-8
 let s:save_cpo = &cpo
 set cpo&vim
 
-let s:FILE = expand('<sfile>')
+let s:FILE = fnamemodify(expand('<sfile>'), ':p')
 let s:NS = 'gf#vimfn'
 let s:assert = themis#helper('assert')
 let s:suite = themis#suite('Test:' . s:NS)
@@ -56,7 +56,7 @@ function! s:suite.test_funcType()
 
 endfunction
 
-let s:test_pickUp_lnum = expand('<slnum>')
+let s:test_pickUp_lnum = str2nr(expand('<slnum>'))
 "call <sid>f1(<sid>f2(<sid>f3(<sid>f4())))
 "let s:ret = call('vimproc#system', [''])
 function! s:suite.test_pickUp()
@@ -81,7 +81,8 @@ function! s:suite.test_pickUp()
     \   }
     \]
 
-    let lnum = str2nr(s:test_pickUp_lnum)
+    let save_isf = &isf
+    let lnum = s:test_pickUp_lnum
     call s:assert.is_number(lnum)
 
     exe 'e' s:FILE
@@ -93,8 +94,8 @@ function! s:suite.test_pickUp()
             let col = 1
             let end = col('$')
             let ans = ''
-            while col isnot end
-                let ans = get(test, string(col), ans)
+            while col <= end
+                let ans = get(test, col, ans)
 
                 call s:assert.is_string(ans)
                 call s:assert.equals(PickUp(), ans)
@@ -106,9 +107,11 @@ function! s:suite.test_pickUp()
         endfor
     finally
         enew
-        " test for test : forループを実行したか？
-        call s:assert.equals(lnum, s:test_pickUp_lnum + len(tests))
     endtry
+
+    call s:assert.equals(&isf, save_isf)
+    " test for test : forループを実行したか？
+    call s:assert.equals(lnum, s:test_pickUp_lnum + len(tests))
 endfunction
 
 function! s:suite.test_aFnToPath()

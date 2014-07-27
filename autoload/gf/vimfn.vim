@@ -107,12 +107,12 @@ endfunction
 function! s:cfile()
     try
         let saveisf = &isf
-        if match(&isf, '\v\<') is -1
-            set isf+=<
-        endif
-        if match(&isf, '\v\>') is -1
-            set isf+=>
-        endif
+        let isf = split(&isf, ',')
+        for c in ['<', '>', ':', '#']
+            if index(isf, c) is -1
+                exe 'set isf+=' . c
+            endif
+        endfor
         let ret = expand('<cfile>')
     finally
         let &isf = saveisf
