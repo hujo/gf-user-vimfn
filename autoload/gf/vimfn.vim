@@ -11,6 +11,11 @@ let s:FUNCTYPE = {
 \   'SCRIPT'   : 4,
 \}
 
+function! s:SID(...)
+    let id = matchstr(string(function('s:SID')), '\C\v\<SNR\>\d+_')
+    return a:0 < 1 ? id : id . a:1
+endfunction
+
 function! s:_getVar(var)
     if has_key(s:, a:var)
         return s:[a:var]
@@ -123,9 +128,9 @@ function! s:pickUp()
     return s:pickFname(s:cfile())
 endfunction
 
-function! s:SID(...)
-    let id = matchstr(string(function('s:SID')), '\C\v\<SNR\>\d+_')
-    return a:0 < 1 ? id : id . a:1
+function! s:isEnable()
+    let enables = get(g:, 'gf_vimfn_enable_filetypes', ['vim', 'help'])
+    return index(enables, &ft) isnot -1
 endfunction
 
 function! s:find(str)
@@ -151,7 +156,7 @@ function! gf#{s:NS}#sid(...)
 endfunction
 
 function! gf#{s:NS}#find()
-    return s:find(s:pickUp())
+    return s:isEnable() ? s:find(s:pickUp()) : 0
 endfunction
 
 let &cpo = s:save_cpo
