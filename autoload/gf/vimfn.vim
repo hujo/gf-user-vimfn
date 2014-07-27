@@ -10,6 +10,7 @@ let s:FUNCTYPE = {
 \   'LOCAL'    : 3,
 \   'SCRIPT'   : 4,
 \   'SNR'      : 5,
+\   'G_DICT'   : 0,
 \}
 
 function! s:SID(...)
@@ -32,26 +33,41 @@ function! s:getOutPutText(cmd)
   return result
 endfunction
 
+function! s:dictFnIsRef(fn)
+  return a:fn =~ '\v\.' && !exists('*' . a:fn) && exists(a:fn)
+endfunction
+
+function! s:dictFnIsPure(fn)
+  return a:fn =~ '\v\.' && exists('*' . a:fn) && exists(a:fn)
+endfunction
+
 function! s:funcType(fn)
   let fn = a:fn
   let _ = s:FUNCTYPE
   let prefix = fn[:1]
-  if prefix is 'g:' && fn[2] is toupper(fn[2]) | return _.GLOBAL
-  elseif prefix is 'l:' && fn[2] isnot ''      | return _.LOCAL
-  elseif prefix is 's:' && fn[2] isnot ''      | return _.SCRIPT
-  elseif fn =~ '\v^\c\<sid\>'                  | return _.SCRIPT
-  elseif fn =~ '\v^\c\<snr\>'                  | return _.SNR
-  elseif fn =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'      | return _.GLOBAL
-  elseif fn =~ '\v\a+#\a'                      | return _.AUTOLOAD
+  if fn =~ '\v^\C[a-z1-9]*$'                  | return 0
+  elseif prefix =~ '\v\Cg:'
+    " NOTE: g:dict.fn support ?
+    if fn =~ '\v\.'                           | return _.G_DICT
+    elseif fn[2] =~ '\v\C[A-Z]'               | return _.GLOBAL
+    endif
+  elseif prefix =~ '\v\Cl:' && fn[2] isnot '' | return _.LOCAL
+  elseif prefix =~ '\v\Cs:' && fn[2] isnot '' | return _.SCRIPT
+  elseif fn =~ '\v^\c\<sid\>'                 | return _.SCRIPT
+  elseif fn =~ '\v^\c\<snr\>'                 | return _.SNR
+  elseif fn =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'     | return _.GLOBAL
+  elseif fn =~ '\v\a+#\a'                     | return _.AUTOLOAD
   endif
   return 0
 endfunction
 
+" aFnToPath(string: autoloadFnName): string
 function! s:aFnToPath(afn)
   let t = join(split(a:afn, '#')[:-2], '/') . '.vim'
   return ['autoload/' . t, 'plugin/' . t]
 endfunction
 
+" findPath(string: fnName, int: fnType): string or 0
 function! s:findPath(fn, fntype)
   let fn = a:fn
   let type = a:fntype
@@ -62,13 +78,14 @@ function! s:findPath(fn, fntype)
       return split(it[0], '\v\r\n|\n|\r')[0]
     endif
   elseif (type is _.GLOBAL || type is _.SNR) && exists('*' . fn)
-    return matchstr(split(s:getOutPutText('1verbose function ' . fn), '\v\r\n|\n')[1], '\v\f+$')
+    return matchstr(split(s:getOutPutText('1verbose function ' . fn), '\v\r\n|\n|\r')[1], '\v\f+$')
   elseif type is _.LOCAL || type is _.SCRIPT
     return '%'
   endif
   return 0
 endfunction
 
+" serchFnPos(list: lines, string: fnName, int: fntype): dict or 0
 function! s:serchFnPos(lines, fn, fntype)
   let _ = s:FUNCTYPE
   let type = a:fntype
@@ -118,7 +135,7 @@ function! s:cfile()
 endfunction
 
 function! s:pickFname(str)
-  return matchstr(a:str, '\v(\c\<(sid|snr)\>)?[a-zA-Z0-9#_:.]+')
+  return matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:\.]+')
 endfunction
 
 function! s:pickUp()
