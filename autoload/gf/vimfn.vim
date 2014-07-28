@@ -59,7 +59,7 @@ function! s:findPath(fn, fntype)
   if type is _.AUTOLOAD
     let it = filter(map(s:aFnToPath(fn), 'globpath(&rtp, v:val)'), '!empty(v:val)')
     if it isnot ''
-      return split(t[0], '\v\r\n|\n|\r')[0]
+      return split(it[0], '\v\r\n|\n|\r')[0]
     endif
   elseif (type is _.GLOBAL || type is _.SNR) && exists('*' . fn)
     return matchstr(split(s:getOutPutText('1verbose function ' . fn), '\v\r\n|\n')[1], '\v\f+$')
