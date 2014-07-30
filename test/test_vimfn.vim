@@ -20,8 +20,7 @@ function! s:getTestData()
   let _ = s:var('FUNCTYPE')
   let [_A, _G, _L, _S, _R, _D]
   \ = [_.AUTOLOAD, _.GLOBAL, _.LOCAL, _.SCRIPT, _.SNR, _.G_DICT]
-  " g:func -> 0
-  " func -> 0
+  " g:func -> 0 func -> 0
   let tests = [
   \  ['s:func'     , _S], ['s:Func'   , _S], ['s:_func'   , _S], ['s:f_u_n_c'   , _S],
   \  ['<sid>func'  , _S], ['<sid>Func', _S], ['<sid>_func', _S], ['<sid>f_u_n_c', _S],
@@ -30,19 +29,21 @@ function! s:getTestData()
   \  ['g:func'     , 0] , ['g:Func'   , _G], ['Func'      , _G], ['g:F_u_n_c'   , _G],
   \  ['prefix#func', _A], ['a#b#func' , _A], ['a#B#Func'  , _A], ['a_b#c_d#e_f' , _A],
   \  ['fnfnfn'     , 0] ,
+  \
   \  ['<snr>1_func' , _R], ['<snr>1_Func' , _R], ['<snr>1__func' , _R], ['<snr>1_f_u_n_c' , _R],
   \  ['<snr>11_func', _R], ['<snr>11_Func', _R], ['<snr>11__func', _R], ['<snr>11_f_u_n_c', _R],
   \  ['<SNR>1_func' , _R], ['<SNR>1_Func' , _R], ['<SNR>1__func' , _R], ['<SNR>1_f_u_n_c' , _R],
   \  ['<SNR>11_func', _R], ['<SNR>11_Func', _R], ['<SNR>11__func', _R], ['<SNR>11_f_u_n_c', _R],
-  \  ['Dict.func'   , _D], ['dic._Func'   , _D], ['dic.sub.__func', _D], ['dict.f.u.n.c'  , _D],
+  \
+  \  ['Dict.func'   , _D], ['dic._Func'   , _D], ['dic.sub.__func'  , _D], ['dict.f.u.n.c'  , _D],
+  \  ['g:Dict.func' , _D], ['g:dic._Func' , _D], ['g:dic.sub.__func', _D], ['g:dict.f.u.n.c', _D],
   \]
   return tests
 endfunction
 
-
 function! s:test_dictFnRef() dict
 endfunction
-function! s:suite.test_dictFn()
+function! s:__test_dictFn()
   let DictFnIsPure = s:func('dictFnIsPure')
   let DictFnIsRef = s:func('dictFnIsRef')
 
@@ -93,38 +94,29 @@ function! s:__test_funcType()
   endfor
 endfunction
 
-function! s:suite.test_funcType()
-  let save_ic = &ignorecase
-  set ignorecase
-  call s:__test_funcType()
-  set noignorecase
-  call s:__test_funcType()
-  let &ignorecase = save_ic
-endfunction
-
 let s:test_pickUp_lnum = str2nr(expand('<slnum>'))
 "call <sid>f1(<sid>f2(<sid>f3(<sid>f4())))
 "let s:ret = call('vimproc#system', [''])
-function! s:suite.test_pickUp()
+function! s:__test_pickUp()
   let PickUp = s:func('pickUp')
 
   let tests = [
-  \  {
-  \    '1'  : 'call',
-  \    '6'  : '<sid>f1',
-  \    '14' : '<sid>f2',
-  \    '22' : '<sid>f3',
-  \    '30' : '<sid>f4',
-  \    '38' : '',
-  \  },
-  \  {
-  \    '1'  : 'let',
-  \    '5'  : 's:ret',
-  \    '11' : '',
-  \    '13' : 'call',
-  \    '18' : 'vimproc#system',
-  \    '34' : '',
-  \  }
+  \ {
+  \   '1'  : 'call',
+  \   '6'  : '<sid>f1',
+  \   '14' : '<sid>f2',
+  \   '22' : '<sid>f3',
+  \   '30' : '<sid>f4',
+  \   '38' : '',
+  \ },
+  \ {
+  \   '1'  : 'let',
+  \   '5'  : 's:ret',
+  \   '11' : '',
+  \   '13' : 'call',
+  \   '18' : 'vimproc#system',
+  \   '34' : '',
+  \ },
   \]
 
   let save_isf = &isf
@@ -160,7 +152,7 @@ function! s:suite.test_pickUp()
   call s:assert.equals(lnum, s:test_pickUp_lnum + len(tests))
 endfunction
 
-function! s:suite.test_aFnToPath()
+function! s:__test_aFnToPath()
   let AFnToPath = s:func('aFnToPath')
 
   let tests = [
@@ -184,10 +176,9 @@ function! s:suite.test_aFnToPath()
     " test main
     call s:assert.equals(a_pathes, r_pathes)
   endfor
-
 endfunction
 
-function! s:suite.test_findPath_localFunc()
+function! s:__test_findPath_localFunc()
   let FindPath = s:func('findPath')
   let FuncType = s:func('funcType')
   let _ = s:var('FUNCTYPE')
@@ -199,7 +190,7 @@ function! s:suite.test_findPath_localFunc()
   endfor
 endfunction
 
-function! s:suite.test_findPath_autoload()
+function! s:__test_findPath_autoload()
   let FindPath = s:func('findPath')
   let FuncType = s:func('funcType')
 
@@ -218,7 +209,7 @@ function! s:suite.test_findPath_autoload()
   endfor
 endfunction
 
-function! s:suite.test_findPath_global()
+function! s:__test_findPath_global()
   let FindPath = s:func('findPath')
   let FuncType = s:func('funcType')
   let fnName = 'GlobalTestFuncDesuyon'
@@ -233,10 +224,9 @@ function! s:suite.test_findPath_global()
   else
     call s:assert.fail(printf('%s is exists. ', fnName))
   endif
-
 endfunction
 
-function! s:suite.test_searchFnPos()
+function! s:__test_searchFnPos()
   let SearchFnPos = s:func('serchFnPos')
   let _S = s:var('FUNCTYPE').SCRIPT
   let lines = [
@@ -278,10 +268,51 @@ function! s:suite.test_searchFnPos()
   endfor
 endfunction
 
+function! s:optionTest(fn)
+  let save_ic = &ignorecase
+  let save_re = &regexpengine
+  let save_magic = &magic
+
+  set ic re=1 magic
+  call function(a:fn)()
+
+  set noic re=2 nomagic
+  call function(a:fn)()
+
+  let &ic = save_ic
+  let &re = save_re
+  let &magic = save_magic
+endfunction
+
+function! s:suite.test_dictFn()
+  call s:optionTest('s:__test_dictFn')
+endfunction
+function! s:suite.test_funcType()
+  call s:optionTest('s:__test_funcType')
+endfunction
+function! s:suite.test_pickUp()
+  call s:optionTest('s:__test_pickUp')
+endfunction
+function! s:suite.test_aFnToPath()
+  call s:optionTest('s:__test_aFnToPath')
+endfunction
+function! s:suite.test_findPath_localFunc()
+  call s:optionTest('s:__test_findPath_localFunc')
+endfunction
+function! s:suite.test_findPath_autoload()
+  call s:optionTest('s:__test_findPath_autoload')
+endfunction
+function! s:suite.test_findPath_global()
+  call s:optionTest('s:__test_findPath_global')
+endfunction
+function! s:suite.test_searchFnPos()
+  call s:optionTest('s:__test_searchFnPos')
+endfunction
+
 function! s:suite.test_find()
   let Find = s:func('find')
   " TODO: テスト用のVim scriptのファイルを作る
-  call s:assert.skip('TODO: write test')
+  call s:assert.todo('TODO: write test for find()')
 endfunction
 
 let &cpo = s:save_cpo
