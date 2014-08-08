@@ -61,7 +61,7 @@ function! s:funcType(fn)
   return 0
 endfunction
 
-" aFnToPath(string: autoloadFnName): string
+" aFnToPath(string: autoloadFnName): list
 function! s:aFnToPath(afn)
   let t = join(split(a:afn, '#')[:-2], '/') . '.vim'
   return ['autoload/' . t, 'plugin/' . t]
@@ -72,13 +72,13 @@ function! s:findPath(fn, fntype)
   let fn = a:fn
   let type = a:fntype
   let _ = s:FUNCTYPE
-  if type is _.AUTOLOAD
+  if (type is _.GLOBAL || type is _.SNR || type is _.AUTOLOAD) && exists('*' . fn)
+    return matchstr(split(s:getOutPutText('1verbose function ' . fn), '\v\r\n|\n|\r')[1], '\v\f+$')
+  elseif type is _.AUTOLOAD
     let it = filter(map(s:aFnToPath(fn), 'globpath(&rtp, v:val)'), '!empty(v:val)')
     if it isnot ''
       return split(it[0], '\v\r\n|\n|\r')[0]
     endif
-  elseif (type is _.GLOBAL || type is _.SNR) && exists('*' . fn)
-    return matchstr(split(s:getOutPutText('1verbose function ' . fn), '\v\r\n|\n|\r')[1], '\v\f+$')
   elseif type is _.LOCAL || type is _.SCRIPT
     return '%'
   endif
@@ -109,7 +109,7 @@ function! s:serchFnPos(lines, fn, fntype)
     endif
   endwhile
 
-  return 0
+  return (type is _.GLOBAL || type is _.SNR || type is _.AUTOLOAD) && exists('*' . fn) ? {'line' : 1, 'col' : 1} : 0
 endfunction
 
 function! s:getFnPos(path, fn, fntype)
