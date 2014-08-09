@@ -226,8 +226,8 @@ function! s:__test_findPath_global()
   endif
 endfunction
 
-function! s:__test_searchFnPos()
-  let SearchFnPos = s:func('serchFnPos')
+function! s:__test_findFnPos()
+  let FindFnPos = s:func('findFnPos')
   let _S = s:var('FUNCTYPE').SCRIPT
   let lines = [
   \  'function s:func1()',
@@ -264,7 +264,7 @@ function! s:__test_searchFnPos()
   \   ['<SID>func10', 0],
   \]
   for test in tests
-    call s:assert.equals(SearchFnPos(lines, test[0], _S), test[1])
+    call s:assert.equals(FindFnPos(lines, test[0], _S), test[1])
   endfor
 endfunction
 
@@ -296,17 +296,23 @@ endfunction
 function! s:suite.test_aFnToPath()
   call s:optionTest('s:__test_aFnToPath')
 endfunction
-function! s:suite.test_findPath_localFunc()
-  call s:optionTest('s:__test_findPath_localFunc')
+
+function! s:suite.__findPath__()
+  let findPath = themis#suite('findPath')
+
+  function! findPath.local_function()
+    call s:optionTest('s:__test_findPath_localFunc')
+  endfunction
+  function! findPath.autoload_function()
+    call s:optionTest('s:__test_findPath_autoload')
+  endfunction
+  function! findPath.global_function()
+    call s:optionTest('s:__test_findPath_global')
+  endfunction
 endfunction
-function! s:suite.test_findPath_autoload()
-  call s:optionTest('s:__test_findPath_autoload')
-endfunction
-function! s:suite.test_findPath_global()
-  call s:optionTest('s:__test_findPath_global')
-endfunction
-function! s:suite.test_searchFnPos()
-  call s:optionTest('s:__test_searchFnPos')
+
+function! s:suite.test_findFnPos()
+  call s:optionTest('s:__test_findFnPos')
 endfunction
 
 function! s:suite.test_find()

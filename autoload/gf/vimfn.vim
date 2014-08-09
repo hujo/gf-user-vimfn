@@ -85,8 +85,8 @@ function! s:findPath(fn, fntype)
   return 0
 endfunction
 
-" serchFnPos(list: lines, string: fnName, int: fntype): dict or 0
-function! s:serchFnPos(lines, fn, fntype)
+" findFnPos(list: lines, string: fnName, int: fntype): dict or 0
+function! s:findFnPos(lines, fn, fntype)
   let _ = s:FUNCTYPE
   let type = a:fntype
   let lines = a:lines
@@ -109,13 +109,39 @@ function! s:serchFnPos(lines, fn, fntype)
     endif
   endwhile
 
-  return (type is _.GLOBAL || type is _.SNR || type is _.AUTOLOAD) && exists('*' . fn) ? {'line' : 1, 'col' : 1} : 0
+  if type is _.GLOBAL || type is _.SNR || type is _.AUTOLOAD
+    return exists('*' . fn) ? s:findFnPosAtFnValue(lines, fn) : {'line': 1, 'col': 1}
+  else
+    return 0
+  endif
+
+endfunction
+
+function! s:findFnPosAtFnValue(lines, fn)
+  let fls = split(s:getOutPutText('function ' . a:fn), '\v\r\n|\n|\r')[1:]
+  let fe = len(fls)
+  let fl = fe
+  let lines = a:lines
+  let line = len(lines)
+  while line
+    let line -= 1
+    let fl -= 1
+    let col = stridx(lines[line], substitute(fls[fl], '\v^(\d+)?\s+', '' , '')) + 1
+    if col
+      if fl is 0
+        return {'line': line, 'col': col}
+      endif
+    else
+      let fl = fe
+    endif
+  endwhile
+  return {'line': 1, 'col': 1}
 endfunction
 
 function! s:getFnPos(path, fn, fntype)
   let isbuf = a:path is '%'
   let lines = isbuf ? getline(1, '$') : readfile(a:path)
-  return s:serchFnPos(lines, a:fn, a:fntype)
+  return s:findFnPos(lines, a:fn, a:fntype)
 endfunction
 
 function! s:cfile()
