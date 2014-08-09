@@ -26,11 +26,23 @@ function! s:_getVar(var)
   endif
 endfunction
 
-function! s:getOutPutText(cmd)
+function! s:redir(cmd)
   redir => result
   silent exe a:cmd
   redir END
   return result
+endfunction
+
+function! s:sonr()
+  let files = split(s:redir('scriptnames'), '\v\r\n|\n|\r')
+  let file = expand('%:p')
+  let i = len(files)
+  while i
+    let i -= 1
+    if stridx(files[i], file) + 1
+      return i + 1
+    endif
+  endwhile
 endfunction
 
 function! s:dictFnIsRef(fn)
@@ -73,10 +85,10 @@ function! s:findPath(fn, fntype)
   let type = a:fntype
   let _ = s:FUNCTYPE
   if (type is _.GLOBAL || type is _.SNR || type is _.AUTOLOAD) && exists('*' . fn)
-    return matchstr(split(s:getOutPutText('1verbose function ' . fn), '\v\r\n|\n|\r')[1], '\v\f+$')
+    return matchstr(split(s:redir('1verbose function ' . fn), '\v\r\n|\n|\r')[1], '\v\f+$')
   elseif type is _.AUTOLOAD
     let it = filter(map(s:aFnToPath(fn), 'globpath(&rtp, v:val)'), '!empty(v:val)')
-    if it isnot ''
+    if len(it)
       return split(it[0], '\v\r\n|\n|\r')[0]
     endif
   elseif type is _.LOCAL || type is _.SCRIPT
@@ -118,7 +130,7 @@ function! s:findFnPos(lines, fn, fntype)
 endfunction
 
 function! s:findFnPosAtFnValue(lines, fn)
-  let fls = split(s:getOutPutText('function ' . a:fn), '\v\r\n|\n|\r')[1:]
+  let fls = split(s:redir('function ' . a:fn), '\v\r\n|\n|\r')[1:]
   let fe = len(fls)
   let fl = fe
   let lines = a:lines
