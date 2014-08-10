@@ -83,7 +83,8 @@ function! s:findPath(fn, fntype)
   call extend(l:, s:FUNCTYPE)
   let [fn, type] = [a:fn, a:fntype]
 
-  if (type is GLOBAL || type is SNR || type is AUTOLOAD) && exists('*' . fn)
+  if ((type is GLOBAL || type is SNR || type is AUTOLOAD) && exists('*' . fn)) ||
+  \   (type is G_DICT && s:dictFnIsPure(fn))
     return matchstr(split(s:redir('1verbose function ' . fn), '\v\r\n|\n|\r')[1], '\v\f+$')
   elseif type is AUTOLOAD
     let it = filter(map(s:aFnToPath(fn), 'globpath(&rtp, v:val)'), '!empty(v:val)')
@@ -103,12 +104,12 @@ function! s:findFnPos(lines, fn, fntype)
   let line = len(lines)
 
   if type is SCRIPT
-    let fn = substitute(fn, '\v(\Cs:|\<\csid\>)', '(\\Cs:|\\<\\csid\\>)\\C', '')
+    let fn = substitute(fn, '\v(\Cs:|\<\csid\>)', '(\\Cs:|<\\csid>)\\C', '')
   elseif type is SNR
     let fn = substitute(fn, '\v\<\csnr\>\d+_', 's:', '')
   endif
 
-  let reg = '\v^\s*\Cfu%[nction\!]\s+' . fn . '\s*\('
+  let reg = '\v^\s*\Cfu%[nction\!]\s+' . escape(fn, '.<>') . '\s*\('
   while line
     let line -= 1
     let col = match(lines[line], reg) + 1
@@ -188,10 +189,16 @@ function! s:isEnable()
 endfunction
 
 function! s:find(fn)
-  let fnt = s:funcType(a:fn)
-  let path = s:findPath(a:fn, fnt)
-  let pos = s:getFnPos(a:fn, fnt, path)
-  return pos is 0 ? s:refind(a:fn, fnt) : extend({'path': expand(path)}, pos)
+  call extend(l:, s:FUNCTYPE)
+  let fn = a:fn
+  let fnt = s:funcType(fn)
+  if fnt is G_DICT
+    let fn = split(string(eval(fn)), "'")[1]
+    let fnt = s:funcType(fn)
+  endif
+  let path = s:findPath(fn, fnt)
+  let pos = s:getFnPos(fn, fnt, path)
+  return pos is 0 ? s:refind(fn, fnt) : extend({'path': expand(path)}, pos)
 endfunction
 
 function! s:refind(fn, fntype)
