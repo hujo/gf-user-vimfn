@@ -189,13 +189,8 @@ function! s:isEnable()
 endfunction
 
 function! s:find(fn)
-  call extend(l:, s:FUNCTYPE)
   let fn = a:fn
   let fnt = s:funcType(fn)
-  if fnt is G_DICT
-    let fn = split(string(eval(fn)), "'")[1]
-    let fnt = s:funcType(fn)
-  endif
   let path = s:findPath(fn, fnt)
   let pos = s:getFnPos(fn, fnt, path)
   return pos is 0 ? s:refind(fn, fnt) : extend({'path': expand(path)}, pos)
@@ -207,6 +202,8 @@ function! s:refind(fn, fntype)
   if fnt is SCRIPT
     let snr = s:sonr()
     return snr ? s:find(printf('<snr>%d_%s', snr, split(fn, ':')[1])) : 0
+  elseif fnt is G_DICT && s:dictFnIsRef(fn)
+    return s:find(split(string(eval(fn)), "'")[1])
   endif
   return 0
 endfunction
