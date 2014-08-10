@@ -18,8 +18,8 @@ endfunction
 
 function! s:getTestData()
   let _ = s:var('FUNCTYPE')
-  let [_A, _G, _L, _S, _R, _D]
-  \ = [_.AUTOLOAD, _.GLOBAL, _.LOCAL, _.SCRIPT, _.SNR, _.G_DICT]
+  let [_A, _G, _L, _S, _R, _GD, _D]
+  \ = [_.AUTOLOAD, _.GLOBAL, _.LOCAL, _.SCRIPT, _.SNR, _.G_DICT, _.DICT]
   " g:func -> 0 func -> 0
   let tests = [
   \  ['s:func'     , _S], ['s:Func'   , _S], ['s:_func'   , _S], ['s:f_u_n_c'   , _S],
@@ -36,7 +36,7 @@ function! s:getTestData()
   \  ['<SNR>11_func', _R], ['<SNR>11_Func', _R], ['<SNR>11__func', _R], ['<SNR>11_f_u_n_c', _R],
   \
   \  ['Dict.func'   , _D], ['dic._Func'   , _D], ['dic.sub.__func'  , _D], ['dict.f.u.n.c'  , _D],
-  \  ['g:Dict.func' , _D], ['g:dic._Func' , _D], ['g:dic.sub.__func', _D], ['g:dict.f.u.n.c', _D],
+  \  ['g:Dict.func' , _GD], ['g:dic._Func' , _GD], ['g:dic.sub.__func', _GD], ['g:dict.f.u.n.c', _GD],
   \]
   return tests
 endfunction
