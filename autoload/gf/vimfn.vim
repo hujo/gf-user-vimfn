@@ -226,9 +226,12 @@ function! gf#{s:NS}#find(...)
 endfunction
 
 function! gf#{s:NS}#open(...)
+  if !s:isEnable()
+    return
+  endif
   let kwrd = a:0 ? a:1 is 0 ? s:pickUp() : a:1 : s:pickUp()
   if type(kwrd) isnot type('')
-    return ''
+    return
   endif
   let data = s:find(s:pickFname(kwrd))
   if data isnot 0

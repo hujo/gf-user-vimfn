@@ -1,0 +1,132 @@
+*gf-user-vimfn.txt*         `gf`をタイプしてユーザー定義関数にジャンプします。
+
+
+==============================================================================
+目次                                               *gf-user-vimfn-contents*
+
+- 概要              |gf-user-vimfn-introduction|
+- 使い方            |gf-user-vimfn-usage|
+- インターフェイス  |gf-user-vimfn-interface|
+  - 関数                |gf-user-vimfn-functions|
+- 設定              |gf-user-vimfn-setting|
+  - 変数                |gf-user-vimfn-valiables|
+
+==============================================================================
+概要                                            *gf-user-vimfn-introduction*
+
+*gf-user-vimfn* は kana 氏が作成された|gf-user|を利用してvim Scriptのユーザー
+定義関数にジャンプするプラグインです。
+
+- vim-gf-user `https://github.com/kana/vim-gf-user`
+
+==============================================================================
+使い方                                                 *gf-user-vimfn-usage*
+
+ノーマルモードまたはヴィジュアルモードで`gf`をタイプします。
+詳しくは|gf-user-introduction|を参照してください。
+
+------------------------------------------------------------------------------
+autoload関数
+
+    関数名に一致するファイルが`runtimepath`にあればジャンプできます。
+>
+    call gf#user#try()
+<
+    関数が存在すればジャンプできます。
+>
+    call gf#vimfn#find()
+<
+    関数が存在しない場合はファイルの先頭にジャンプします。
+
+------------------------------------------------------------------------------
+スクリプトローカル関数
+>
+    function! s:script_local_fn()
+    endfunction
+<
+    関数が宣言されている場所にジャンプします。
+>
+    call s:script_local_fn()
+<
+    <sid>の場合もジャンプします。
+>
+    command! -nargs=* -complete=customlist,<sid>script_local_fn
+<
+------------------------------------------------------------------------------
+グローバル関数
+
+    関数が存在する場合ジャンプできます。
+>
+    call GetVimIndent()
+<
+------------------------------------------------------------------------------
+グローバル変数のdictの関数
+
+    dictが格納されたグローバル変数が存在する場合。
+    例えば以下のようにグローバル変数にdictが入っている場合。
+>
+    let g:V = vital#of('vital')
+<
+    関数にジャンプします。
+>
+    let s:http = g:V.import('Web.HTTP')
+<
+    グローバルにdictが存在しない場合、
+    またはdictにキーが存在しない場合はジャンプできません。
+
+==============================================================================
+インターフェイス                                      *gf-user-vimfn-interface*
+
+------------------------------------------------------------------------------
+関数                                                  *gf-user-vimfn-functions*
+
+gf#vimfn#find([{keyword}])                                    *gf#vimfn#find()*
+    主に`gf#user#try()`から呼ばれることを想定しています。
+
+gf#vimfn#open([{keyword}])                                    *gf#vimfn#open()*
+    この関数は`gf#user#try()`から呼ばれることを想定していません。
+
+    関数が見つかった場合|g:gf_vimfn_open_action|に指定された開き方で
+    ファイルを開きます。
+
+    - {keyword}に文字列をあたえた場合
+        その文字列内から関数を探します。
+
+    - {keyword}をあたえなかった場合
+    - {keyword}に`0`をあたえた場合
+        カーソル位置から関数名を探します。
+
+    コマンドやキーマッピングで使用することを想定しています。
+
+==============================================================================
+設定                                                    *gf-user-vimfn-setting*
+
+------------------------------------------------------------------------------
+変数                                                  *gf-user-vimfn-valiables*
+
+g:loaded_gf_user_vimfn                                *g:loaded_gf_user_vimfn*
+
+    after/plugin が読み込まれる前に
+    この値を`1`に設定しておくと`gf-user-vimfn`を`gf-user`に登録しません。
+
+
+g:gf_vimfn_enable_filetypes                       *g:gf_vimfn_enable_filetypes*
+
+    gf-user-vimfnの機能を有効にするファイルタイプをリストで指定します。
+    この変数は`gf-user-vimfn`の機能が実行されるたびに判定されます。
+
+    この変数がリストでない場合、
+    またはこの変数が存在しない場合はデフォルトの値が使用されます。
+>
+    "default ['vim', 'help']
+
+<
+g:gf_vimfn_open_action                                 *g:gf_vimfn_open_action*
+
+    |gf#vimfn#open()|でのファイルの開き方を文字列で指定します。
+>
+    "default 'tab drop'
+<
+
+==============================================================================
+vim:tw=78:fo=tcq2mM:ts=8:ft=help:norl
