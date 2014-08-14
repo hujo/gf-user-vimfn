@@ -102,19 +102,27 @@ function! s:__test_pickUp()
 
   let tests = [
   \ {
-  \   '1'  : 'call',
-  \   '6'  : '<sid>f1',
-  \   '14' : '<sid>f2',
-  \   '22' : '<sid>f3',
-  \   '30' : '<sid>f4',
+  \   '1'  : '',
+  \   '2'  : 'call',
+  \   '6'  : '',
+  \   '7'  : '<sid>f1',
+  \   '14' : '',
+  \   '15' : '<sid>f2',
+  \   '22' : '',
+  \   '23' : '<sid>f3',
+  \   '30' : '',
+  \   '31' : '<sid>f4',
   \   '38' : '',
   \ },
   \ {
-  \   '1'  : 'let',
-  \   '5'  : 's:ret',
+  \   '1'  : '',
+  \   '2'  : 'let',
+  \   '5'  : '',
+  \   '6'  : 's:ret',
   \   '11' : '',
-  \   '13' : 'call',
-  \   '18' : 'vimproc#system',
+  \   '14' : 'call',
+  \   '18' : '',
+  \   '20' : 'vimproc#system',
   \   '34' : '',
   \ },
   \]
@@ -136,8 +144,13 @@ function! s:__test_pickUp()
         let ans = get(test, col, ans)
 
         call s:assert.is_string(ans)
-        call s:assert.equals(PickUp(), ans)
-        call s:assert.not_equals(PickUp(), '!!!!!!!!')
+        let res = PickUp()
+        if res !=# ans
+          call s:assert.fail(
+          \ printf("column: %d\nexpected: %s\ngot: %s", col, string(ans), string(res)))
+        endif
+        call s:assert.equals(res, ans)
+        call s:assert.not_equals(res, '!!!!!!!!')
 
         let col += 1
         call cursor(lnum, col)

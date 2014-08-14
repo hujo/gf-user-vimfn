@@ -161,17 +161,21 @@ function! s:getFnPos(fn, fntype, path)
 endfunction
 
 function! s:cfile()
-  try
-    let [saveisf, isf] = [&isf, split(&isf, ',')]
-    for c in ['<', '>', ':', '#']
-      if index(isf, c) is -1
-        exe 'set isf+=' . c
+  let line = getline(line('.'))
+  let col = col('.') - 1
+  let pat = '\v\C[a-zA-Z0-9#._:<>]'
+  let ret = matchstr(line, pat . '*', col)
+  let mat = matchstr(line[col], pat)
+  if !empty(ret)
+    while col
+      let col -= 1
+      let mat = matchstr(line[col], pat)
+      if empty(mat)
+        break
       endif
-    endfor
-    let ret = expand('<cfile>')
-  finally
-    let &isf = saveisf
-  endtry
+      let ret = mat . ret
+    endwhile
+  endif
   return ret
 endfunction
 
@@ -184,7 +188,11 @@ function! s:pickUp()
 endfunction
 
 function! s:isEnable()
-  let enables = get(g:, 'gf_vimfn_enable_filetypes', ['vim', 'help'])
+  if exists('g:gf_vimfn_enable_filetypes') && type(g:gf_vimfn_enable_filetypes)
+    let enables = g:gf_vimfn_enable_filetypes
+  else
+    let enables = ['vim', 'help']
+  endif
   return index(enables, &ft) isnot -1
 endfunction
 
@@ -213,11 +221,16 @@ function! gf#{s:NS}#sid(...)
 endfunction
 
 function! gf#{s:NS}#find(...)
-  return s:isEnable() ? s:find(s:pickUp()) : 0
+  let kwrd = a:0 ? a:1 : s:pickUp()
+  return s:isEnable() ? s:find(kwrd) : 0
 endfunction
 
 function! gf#{s:NS}#open(...)
-  let data = s:find(s:pickFname(get(a:000, 0, '')))
+  let kwrd = a:0 ? a:1 is 0 ? s:pickUp() : a:1 : s:pickUp()
+  if type(kwrd) isnot type('')
+    return ''
+  endif
+  let data = s:find(s:pickFname(kwrd))
   if data isnot 0
     let act = get(g:, 'gf_vimfn_open_action', 'tab drop')
     exe act data.path
