@@ -176,7 +176,7 @@ function! s:cfile()
 endfunction
 
 function! s:pickFname(str)
-  return matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:\.]+')
+  return matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:.]+')
 endfunction
 
 function! s:pickUp()
