@@ -154,6 +154,6 @@ gf#vimfn#open                                     *gf-user-vimfn-examples-open*
     \       split(string(eval(
     \           substitute(<q-args>, '\v\([^)]*$', '', ''))), "'")[1] :
     \       empty(<q-args>) ? 0 : <q-args>)
-
+<
 ==============================================================================
 vim:tw=78:fo=tcq2mM:ts=8:ft=help:norl
