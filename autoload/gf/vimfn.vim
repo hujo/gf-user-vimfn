@@ -236,6 +236,9 @@ function! gf#{s:NS}#open(...)
   let data = s:find(s:pickFname(kwrd))
   if data isnot 0
     let act = get(g:, 'gf_vimfn_open_action', 'tab drop')
+    if data.path is '%'
+      let data.path = expand(data.path)
+    endif
     exe act data.path
     call cursor(data.line, data.col)
   endif
