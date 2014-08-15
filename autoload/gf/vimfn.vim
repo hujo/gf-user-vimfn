@@ -104,12 +104,12 @@ function! s:findFnPos(lines, fn, fntype)
   let line = len(lines)
 
   if type is SCRIPT
-    let fn = substitute(fn, '\v(\Cs:|\<\csid\>)', '(\\Cs:|<\\csid>)\\C', '')
+    let fn = substitute(fn, '\v(\Cs:|\<\csid\>)', '(s:|<(s|S)(i|I)(d|D)>)', '')
   elseif type is SNR
     let fn = substitute(fn, '\v\<\csnr\>\d+_', 's:', '')
   endif
 
-  let reg = '\v^\s*\Cfu%[nction\!]\s+' . escape(fn, '.<>') . '\s*\('
+  let reg = '\v^\C\s*fu%[nction\!]\s+' . escape(fn, '.<>') . '\s*\('
   while line
     let line -= 1
     let col = match(lines[line], reg) + 1

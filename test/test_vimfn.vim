@@ -243,7 +243,7 @@ function! s:__test_findFnPos()
   let FindFnPos = s:func('findFnPos')
   let _S = s:var('FUNCTYPE').SCRIPT
   let lines = [
-  \  'function s:func1()',
+  \  'function! s:func1()',
   \  'function! s:func2()',
   \  'function! s:func3 ()',
   \  'function! <sid>func4 ()',
@@ -277,7 +277,13 @@ function! s:__test_findFnPos()
   \   ['<SID>func10', 0],
   \]
   for test in tests
-    call s:assert.equals(FindFnPos(lines, test[0], _S), test[1])
+    let res = FindFnPos(lines, test[0], _S)
+    if type(res) != type(test[1])
+      call s:assert.fail(
+      \ printf("input: %s\nexpected: %s\ngot: %s",
+      \   string(test[0]), string(test[1]), string(res)))
+    endif
+    unlet res
   endfor
 endfunction
 
