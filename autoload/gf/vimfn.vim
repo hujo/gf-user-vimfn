@@ -1,7 +1,8 @@
 scriptencoding utf-8
-
+" Save CPO {{{
 let s:save_cpo = &cpo
 set cpo&vim
+"}}}
 
 let s:NS = tolower(expand('<sfile>:t:r'))
 let s:FUNCTYPE = {
@@ -14,6 +15,7 @@ let s:FUNCTYPE = {
 \   'DICT'     : 0,
 \}
 
+" Util functions {{{
 function! s:SID(...)
   let id = matchstr(string(function('s:SID')), '\C\v\<SNR\>\d+_')
   return a:0 < 1 ? id : id . a:1
@@ -42,6 +44,10 @@ function! s:sonr()
   endwhile
 endfunction
 
+function! s:isExistsFn(fnName, ...)
+  return !empty(a:fnName) && exists('*' . a:fnName)
+endfunction
+
 function! s:dictFnIsRef(fn)
   return a:fn =~ '\v\.' && !exists('*' . a:fn) && exists(a:fn)
 endfunction
@@ -50,117 +56,114 @@ function! s:dictFnIsPure(fn)
   return a:fn =~ '\v\.' && exists('*' . a:fn) && exists(a:fn)
 endfunction
 
-function! s:funcType(fn, ...)
-  call extend(l:, get(a:000, 0, s:FUNCTYPE))
-  let [fn, prefix] = [a:fn, a:fn[:1]]
+"}}}
 
-  if fn =~ '\v^\C[a-z1-9]*$'                  | return 0
+function! s:funcType(fnName) " :int {{{
+  let [name, prefix, _] = [a:fnName, a:fnName[:1], s:FUNCTYPE]
+
+  if name =~ '\v^\C[a-z1-9]*$'                  | return 0
   elseif prefix =~ '\v\Cg:'
-    " NOTE: g:dict.fn support ?
-    if fn =~ '\v\.'                           | return G_DICT
-    elseif fn[2] =~ '\v\C[A-Z]'               | return GLOBAL
+    if name =~ '\v\.'                           | return _.G_DICT
+    elseif name[2] =~ '\v\C[A-Z]'               | return _.GLOBAL
     endif
-  elseif prefix =~ '\v\Cl:' && fn[2] isnot '' | return LOCAL
-  elseif prefix =~ '\v\Cs:' && fn[2] isnot '' | return SCRIPT
-  elseif fn =~ '\v^\c\<sid\>'                 | return SCRIPT
-  elseif fn =~ '\v^\c\<snr\>'                 | return SNR
-  elseif fn =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'     | return GLOBAL
-  elseif fn =~ '\v\a+#\a'                     | return AUTOLOAD
+  elseif prefix =~ '\v\Cl:' && name[2] isnot '' | return _.LOCAL
+  elseif prefix =~ '\v\Cs:' && name[2] isnot '' | return _.SCRIPT
+  elseif name =~ '\v^\c\<sid\>'                 | return _.SCRIPT
+  elseif name =~ '\v^\c\<snr\>'                 | return _.SNR
+  elseif name =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'     | return _.GLOBAL
+  elseif name =~ '\v\a+#[a-zA-Z_#]+$'           | return _.AUTOLOAD
   endif
   return 0
 endfunction
+" }}}
 
-" aFnToPath(string: autoloadFnName): list
-function! s:aFnToPath(afn)
-  let t = join(split(a:afn, '#')[:-2], '/') . '.vim'
+function! s:aFnToPath(autoloadFnName) " :list {{{
+  let t = join(split(a:autoloadFnName, '#')[:-2], '/') . '.vim'
   return ['autoload/' . t, 'plugin/' . t]
-endfunction
+endfunction "}}}
 
-" findPath(string: fnName, int: fnType): string or 0
-function! s:findPath(fn, fntype)
-  if a:fntype is 0 | return 0 | endif
-
-  call extend(l:, s:FUNCTYPE)
-  let [fn, type] = [a:fn, a:fntype]
-
-  if ((type is GLOBAL || type is SNR || type is AUTOLOAD) && exists('*' . fn)) ||
-  \   (type is G_DICT && s:dictFnIsPure(fn))
-    return matchstr(split(s:redir('1verbose function ' . fn), '\v\r\n|\n|\r')[1], '\v\f+$')
-  elseif type is AUTOLOAD
-    let it = filter(map(s:aFnToPath(fn), 'globpath(&rtp, v:val)'), '!empty(v:val)')
-    if len(it)
-      return split(it[0], '\v\r\n|\n|\r')[0]
-    endif
-  elseif type is LOCAL || type is SCRIPT
+function! s:findPath(fnName, fnType) " :string or 0 {{{
+  let [name, type, _] = [a:fnName, a:fnType, s:FUNCTYPE]
+  if type is 0
+    return 0
+  elseif s:isExistsFn(name, type)
+    return matchstr(split(s:redir('1verbose function ' . name), '\v\r\n|\n|\r')[1], '\v\f+$')
+  elseif type is _.AUTOLOAD
+    let it = filter(map(s:aFnToPath(name), 'globpath(&rtp, v:val)'), '!empty(v:val)')
+    return len(it) ? split(it[0], '\v\r\n|\n|\r')[0] : 0
+  elseif type is _.LOCAL || type is _.SCRIPT
     return '%'
   endif
   return 0
-endfunction
+endfunction "}}}
 
-" findFnPos(list: lines, string: fnName, int: fntype): dict or 0
-function! s:findFnPos(lines, fn, fntype)
-  call extend(l:, s:FUNCTYPE)
-  let [lines, fn, type] = [a:lines, a:fn, a:fntype]
-  let line = len(lines)
+function! s:findFnPos(fnName, fnType, path) " :dict or 0 {{{
+  let [name, type, path] = [a:fnName, a:fnType, a:path]
+  if !(type is 0 || path is 0)
+    let lines = path is '%' ? getline(1, '$') : readfile(expand(path))
+    if s:isExistsFn(name, type)
+      let ret = s:findFnPosAtValue(lines, name)
+        return (ret.line is 0 || ret.col is 0) ?
+        \   s:findFnPosAtName(lines, name, type) : ret
+    else
+      return s:findFnPosAtName(lines, name, type)
+    endif
+  endif
+endfunction "}}}
 
-  if type is SCRIPT
-    let fn = substitute(fn, '\v(\Cs:|\<\csid\>)', '(s:|<(s|S)(i|I)(d|D)>)', '')
-  elseif type is SNR
-    let fn = substitute(fn, '\v\<\csnr\>\d+_', 's:', '')
+function! s:findFnPosAtName(lines, fnName, fnType) " :dict {{{
+  let [lines, name, type, _] = [a:lines, a:fnName, a:fnType, s:FUNCTYPE]
+  let lnum = len(lines)
+
+  if type is _.SCRIPT
+    let name = substitute(name, '\v(\Cs:|\<\csid\>)', '(s:|<(s|S)(i|I)(d|D)>)', '')
+  elseif type is _.SNR
+    let name = substitute(name, '\v\<\csnr\>\d+_', 's:', '')
   endif
 
-  let reg = '\v^\C\s*fu%[nction\!]\s+' . escape(fn, '.<>') . '\s*\('
-  while line
-    let line -= 1
-    let col = match(lines[line], reg) + 1
+  let reg = '\v^\C\s*fu%[nction\!]\s+' . escape(name, '.<>') . '\s*\('
+  while lnum
+    let lnum -= 1
+    let col = match(lines[lnum], reg) + 1
     if col
-      return {'line' : line + 1, 'col' : col}
+      return {'line': lnum + 1, 'col': col}
     endif
   endwhile
+  return {'line': 0, 'col': 0}
+endfunction "}}}
 
-  if type is GLOBAL || type is SNR || type is AUTOLOAD
-    return exists('*' . fn) ? s:findFnPosAtFnValue(lines, fn) : {'line': 1, 'col': 1}
-  endif
-  return 0
-endfunction
-
-function! s:findFnPosAtFnValue(lines, fn)
-  let fls = ['fu'] + map(split(s:redir('function ' . a:fn), '\v\r\n|\n|\r')[1:],
-  \         'substitute(v:val, ''\v^(\d+)?\s*'', '''' , '''')')
-  let fe = len(fls) - 1
-  let fls[fe] = 'endf'
-  let fl = fe
+function! s:findFnPosAtValue(lines, fnName) " :dict {{{
+  let _val = ['\v\C^\s*fu%[nction!]\s+[^(]+\s*\([^)]*\)']
+  \        + map(split(s:redir('function ' . a:fnName), '\v\r\n|\n|\r')[1:],
+  \           'substitute(v:val, ''\v^(\d+)?\s*'', '''' , '''')')
+  let _len = len(_val) - 1
+  let _lnum = _len
+  let _val[_len] = 'endf'
   let lines = a:lines
-  let lnum = fe > 1 ? len(lines) : 0
+  let lnum = _len > 1 ? len(lines) : 0
 
   while lnum
     let lnum -= 1
     let line = lines[lnum]
-    let col = 1 + (empty(fls[fl]) ? match(line, '\v^\s*$') : stridx(line, fls[fl]))
-    let fl = col ? fl - 1 : fe
-    if fl isnot fe && (stridx(line, '\n') + 1)
-      let t = split(line, '\v\\n')
-      let tl = len(t) - 1
-      while tl && fl >= 0
-        let tl -= 1
-        let line = t[tl]
-        let col = 1 + (empty(fls[fl]) ? match(line, '\v^\s*$') : stridx(line, fls[fl]))
-        let fl = col ? fl - 1 : fe
-      endwhile
+    if line =~# '\v^\s*\\'
+      let lines[lnum - 1] .= substitute(line, '\v^\s*\\', '', '')
+      continue
     endif
-    if fl < 0 | return {'line': lnum + 1, 'col': col} | endif
+    if _lnum
+      let col = empty(_val[_lnum]) ? empty(line) : stridx(line, _val[_lnum])
+    else
+      let col = stridx(line, substitute(a:fnName, '\v\c\<sid\>\d+_', '', '')) + 1
+      if !col
+        let col = match(line, _val[0]) + 1
+      endif
+    endif
+    let _lnum = col ? _lnum - 1 : _len
+    if _lnum < 0 | return {'line': lnum + 1, 'col': col} | endif
   endwhile
-  return {'line': 1, 'col': 1}
-endfunction
+  return {'line': 0, 'col': 0}
+endfunction "}}}
 
-function! s:getFnPos(fn, fntype, path)
-  if a:fntype is 0 || a:path is 0 | return 0 | endif
-  let isbuf = a:path is '%'
-  let lines = isbuf ? getline(1, '$') : readfile(expand(a:path))
-  return s:findFnPos(lines, a:fn, a:fntype)
-endfunction
-
-function! s:cfile()
+function! s:pickCursor() " :string {{{
   let line = getline(line('.'))
   let col = col('.') - 1
   let pat = '\v\C[a-zA-Z0-9#._:<>]'
@@ -177,71 +180,86 @@ function! s:cfile()
     endwhile
   endif
   return ret
-endfunction
+endfunction "}}}
 
-function! s:pickFname(str)
+function! s:pickFname(str) " :string {{{
   return matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:.]+')
-endfunction
+endfunction "}}}
 
-function! s:pickUp()
-  return s:pickFname(s:cfile())
-endfunction
+function! s:pickCursorFname() " :string {{{
+  return s:pickFname(s:pickCursor())
+endfunction "}}}
 
-function! s:isEnable()
-  if exists('g:gf_vimfn_enable_filetypes') && type(g:gf_vimfn_enable_filetypes)
-    let enables = g:gf_vimfn_enable_filetypes
-  else
-    let enables = ['vim', 'help']
+let s:DEFAULT_OPTS = {
+\  'gf_vimfn_enable_filetypes': ['vim', 'help'],
+\  'gf_vimfn_open_action': 'tab drop',
+\}
+
+function! s:getOpt(optname) " :? {{{
+  let default = s:DEFAULT_OPTS[a:optname]
+  if !exists('g:' . a:optname)
+    return default
   endif
-  return index(enables, &ft) isnot -1
-endfunction
+  let opt = g:[a:optname]
+  return type(opt) is type(default) ? opt : default
+endfunction "}}}
 
-function! s:find(fn)
-  let fn = a:fn
-  let fnt = s:funcType(fn)
-  let path = s:findPath(fn, fnt)
-  let pos = s:getFnPos(fn, fnt, path)
-  return pos is 0 ? s:refind(fn, fnt) : extend({'path': expand(path)}, pos)
-endfunction
+function! s:isEnable() " :int {{{
+  return index(s:getOpt('gf_vimfn_enable_filetypes'), &ft) isnot -1
+endfunction "}}}
 
-function! s:refind(fn, fntype)
-  let [fn, fnt] = [a:fn, a:fntype]
-  call extend(l:, s:FUNCTYPE)
-  if fnt is SCRIPT
+function! s:find(fnName) " :dict or 0 {{{
+  let name = a:fnName
+  if type(name) is type('')
+    let type = s:funcType(name)
+    let path = s:findPath(name, type)
+    "echoe PP(l:)
+    let pos = s:findFnPos(name, type, path)
+    "echoe PP(l:)
+    let ret = pos is 0 || pos.line is 0 || pos.col is 0 ?
+    \   s:refind(name, type) : extend({'path': expand(path)}, pos)
+    "echoe PP(l:)
+    return ret
+  endif
+endfunction "}}}
+
+function! s:refind(fnName, fnType) " :dict or 0 {{{
+  let [name, type, _] = [a:fnName, a:fnType, s:FUNCTYPE]
+  if type is _.SCRIPT
     let snr = s:sonr()
-    return snr ? s:find(printf('<snr>%d_%s', snr, split(fn, ':')[1])) : 0
-  elseif fnt is G_DICT && s:dictFnIsRef(fn)
-    return s:find(split(string(eval(fn)), "'")[1])
+    return snr ? s:find(printf('<snr>%d_%s', snr, split(name, ':')[1])) : 0
+  elseif s:dictFnIsRef(name)
+    return s:find(split(string(eval(name)), "'")[1])
   endif
   return 0
-endfunction
+endfunction "}}}
 
+" Autoload Functions {{{
 function! gf#{s:NS}#sid(...)
   return call(function('s:SID'), a:000)
 endfunction
 
-function! gf#{s:NS}#find(...)
-  let kwrd = a:0 ? a:1 : s:pickUp()
-  return s:isEnable() ? s:find(kwrd) : 0
-endfunction
+function! gf#{s:NS}#find(...) "{{{
+  if s:isEnable()
+    let kwrd = a:0 > 0 ?
+    \  a:1 is 0 ? s:pickCursor() : a:1 :
+    \  s:pickCursor()
+    let ret = s:find(s:pickFname(kwrd))
+    return ret
+  endif
+endfunction "}}}
 
-function! gf#{s:NS}#open(...)
-  if !s:isEnable()
-    return
+function! gf#{s:NS}#open(...) "{{{
+  let d = call(printf('gf#%s#find', s:NS), a:000)
+  if type(d) is type({})
+    exe s:getOpt('gf_vimfn_open_action') d.path
+    call cursor(d.line, d.col)
   endif
-  let kwrd = a:0 ? a:1 is 0 ? s:pickUp() : a:1 : s:pickUp()
-  if type(kwrd) isnot type('')
-    return
-  endif
-  let data = s:find(s:pickFname(kwrd))
-  if data isnot 0
-    let act = get(g:, 'gf_vimfn_open_action', 'tab drop')
-    exe act data.path
-    call cursor(data.line, data.col)
-  endif
-endfunction
+endfunction "}}}
+"}}}
 
+" Restore CPO {{{
 let &cpo = s:save_cpo
 unlet! s:save_cpo
-
-" vim:set et sts=2 ts=2 sw=2:
+"}}}
+" vim:set et sts=2 ts=2 sw=2 fdm=marker:
