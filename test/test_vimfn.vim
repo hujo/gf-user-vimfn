@@ -97,8 +97,8 @@ endfunction
 let s:test_pickUp_lnum = str2nr(expand('<slnum>'))
 "call <sid>f1(<sid>f2(<sid>f3(<sid>f4())))
 "let s:ret = call('vimproc#system', [''])
-function! s:__test_pickUp()
-  let PickUp = s:func('pickUp')
+function! s:__test_pickCursorFname()
+  let PickUp = s:func('pickCursorFname')
 
   let tests = [
   \ {
@@ -239,8 +239,8 @@ function! s:__test_findPath_global()
   endif
 endfunction
 
-function! s:__test_findFnPos()
-  let FindFnPos = s:func('findFnPos')
+function! s:__test_findFnPosAtName()
+  let FindFnPos = s:func('findFnPosAtName')
   let _S = s:var('FUNCTYPE').SCRIPT
   let lines = [
   \  'function! s:func1()',
@@ -255,26 +255,26 @@ function! s:__test_findFnPos()
   \  '"function func10()',
   \]
   let tests = [
-  \   ['s:func1',    {'line' : 1, 'col' : 1}],
-  \   ['s:func2',    {'line' : 2, 'col' : 1}],
-  \   ['s:func3',    {'line' : 3, 'col' : 1}],
-  \   ['s:func4',    {'line' : 4, 'col' : 1}],
-  \   ['s:func5',    {'line' : 5, 'col' : 1}],
-  \   ['<sid>func1', {'line' : 1, 'col' : 1}],
-  \   ['<sid>func2', {'line' : 2, 'col' : 1}],
-  \   ['<sid>func3', {'line' : 3, 'col' : 1}],
-  \   ['<sid>func4', {'line' : 4, 'col' : 1}],
-  \   ['<sid>func5', {'line' : 5, 'col' : 1}],
-  \   ['<SID>func1', {'line' : 1, 'col' : 1}],
-  \   ['<SID>func2', {'line' : 2, 'col' : 1}],
-  \   ['<SID>func3', {'line' : 3, 'col' : 1}],
-  \   ['<SID>func4', {'line' : 4, 'col' : 1}],
-  \   ['<SID>func5', {'line' : 5, 'col' : 1}],
-  \   ['s:func6'   , {'line' : 6, 'col' : 1}],
-  \   ['l:func7'   , {'line' : 7, 'col' : 1}],
-  \   ['l:func8'   , {'line' : 8, 'col' : 1}],
-  \   ['s:func9'   , {'line' : 9, 'col' : 1}],
-  \   ['<SID>func10', 0],
+  \   ['s:func1',     {'line' : 1, 'col' : 1}],
+  \   ['s:func2',     {'line' : 2, 'col' : 1}],
+  \   ['s:func3',     {'line' : 3, 'col' : 1}],
+  \   ['s:func4',     {'line' : 4, 'col' : 1}],
+  \   ['s:func5',     {'line' : 5, 'col' : 1}],
+  \   ['<sid>func1',  {'line' : 1, 'col' : 1}],
+  \   ['<sid>func2',  {'line' : 2, 'col' : 1}],
+  \   ['<sid>func3',  {'line' : 3, 'col' : 1}],
+  \   ['<sid>func4',  {'line' : 4, 'col' : 1}],
+  \   ['<sid>func5',  {'line' : 5, 'col' : 1}],
+  \   ['<SID>func1',  {'line' : 1, 'col' : 1}],
+  \   ['<SID>func2',  {'line' : 2, 'col' : 1}],
+  \   ['<SID>func3',  {'line' : 3, 'col' : 1}],
+  \   ['<SID>func4',  {'line' : 4, 'col' : 1}],
+  \   ['<SID>func5',  {'line' : 5, 'col' : 1}],
+  \   ['s:func6'   ,  {'line' : 6, 'col' : 1}],
+  \   ['l:func7'   ,  {'line' : 7, 'col' : 1}],
+  \   ['l:func8'   ,  {'line' : 8, 'col' : 1}],
+  \   ['s:func9'   ,  {'line' : 9, 'col' : 1}],
+  \   ['<SID>func10', {'line' : 0, 'col' : 0}],
   \]
   for test in tests
     let res = FindFnPos(lines, test[0], _S)
@@ -310,7 +310,7 @@ function! s:suite.test_funcType()
   call s:optionTest('s:__test_funcType')
 endfunction
 function! s:suite.test_pickUp()
-  call s:optionTest('s:__test_pickUp')
+  call s:optionTest('s:__test_pickCursorFname')
 endfunction
 function! s:suite.test_aFnToPath()
   call s:optionTest('s:__test_aFnToPath')
@@ -331,7 +331,7 @@ function! s:suite.__findPath__()
 endfunction
 
 function! s:suite.test_findFnPos()
-  call s:optionTest('s:__test_findFnPos')
+  call s:optionTest('s:__test_findFnPosAtName')
 endfunction
 
 function! s:suite.test_find()
