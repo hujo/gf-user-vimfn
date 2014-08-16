@@ -1,5 +1,5 @@
 scriptencoding utf-8
-" Save CPO {{{
+"Save CPO {{{
 let s:save_cpo = &cpo
 set cpo&vim
 "}}}
@@ -104,6 +104,11 @@ function! s:findFnPos(fnName, fnType, path) " :dict or 0 {{{
     let ret = s:findFnPosAtName(lines, name, type)
     if (ret.line is 0 || ret.col is 0) && s:isExistsFn(name, type)
       let ret = s:findFnPosAtValue(lines, name)
+        return (ret.line is 0 || ret.col is 0) ?
+        \   s:findFnPosAtName(lines, name, type) : ret
+        return ret
+    else
+      return s:findFnPosAtName(lines, name, type)
     endif
     return ret
   endif
@@ -130,32 +135,51 @@ function! s:findFnPosAtName(lines, fnName, fnType) " :dict {{{
   return {'line': 0, 'col': 0}
 endfunction "}}}
 
+function! s:fnValueToList(fnValue) " :list {{{
+  let lines = split(a:fnValue, '\v\r\n|\n|\r')
+  for i in range(len(lines))
+    let lines[i] = substitute(lines[i], '\v^(\d+)?\s+', '', '')
+  endfor
+  return lines
+endfunction "}}}
+
 function! s:findFnPosAtValue(lines, fnName) " :dict {{{
-  let _val = ['fu'] + map(split(s:redir('function ' . a:fnName), '\v\r\n|\n|\r')[1:],
-  \           'substitute(v:val, ''\v^(\d+)?\s*'', '''' , '''')')
+  let _val = s:fnValueToList(s:redir('function ' . a:fnName))
   let _len = len(_val) - 1
   let _lnum = _len
-  let _val[_len] = 'endf'
   let lines = a:lines
   let lnum = _len > 1 ? len(lines) : 0
 
   while lnum
     let lnum -= 1
-    let line = lines[lnum]
-    if line =~# '\v^\s*[\\]'
-      let lines[lnum - 1] .= substitute(line, '\v^\s*\\', '', '')
-      continue
-    endif
-    if _lnum
-      let col = empty(_val[_lnum]) ? empty(line) : stridx(line, _val[_lnum])
+    let idnt = matchstr(lines[lnum], '\v^\s+')
+    let line = strpart(lines[lnum], len(idnt))
+
+    if _lnum is 0
+      let col = len(idnt) + match(line, '\vfu%[nction\!]\s+') + 1
+    elseif _lnum is _len
+      let col = 1 + match(line, '\vendfu%[nction]')
     else
-      let col = stridx(line, a:fnName) + 1
-      if !col
-        let col = stridx(line, _val[0]) + 1
+      let col = stridx(line, _val[_lnum]) + 1
+      if !col && line =~ '\v^[\\]'
+        let lines[lnum - 1] .= strpart(line, 1)
+        continue
       endif
     endif
-    let _lnum = col ? _lnum - 1 : _len
-    if _lnum < 0 | return {'line': lnum + 1, 'col': col} | endif
+
+    if col
+      "PP [line, _val[_lnum]]
+      let _lnum -= 1
+    else
+      let _lnum = _len
+    endif
+
+    if _lnum < 0
+      return {
+      \   'line': lnum + 1,
+      \   'col': col
+      \}
+    endif
   endwhile
   return {'line': 0, 'col': 0}
 endfunction "}}}

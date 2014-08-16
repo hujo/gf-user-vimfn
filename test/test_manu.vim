@@ -35,7 +35,8 @@ function! s:test_find(input, ans)
     let F = function('gf#vimfn#find')
     let res =  F(a:input)
     if (type(res) isnot type(a:ans)) ||
-    \   type(a:ans) is type({}) && (!get(res, 'line', 0) || !get(res, 'col', 0))
+    \   (type(a:ans) is type({}) &&
+    \       get(res, 'line', 0) isnot get(a:ans, 'line', get(res, 'line', 0)))
         echo PP([a:input, a:ans, res])
     endif
 endfunction
@@ -48,6 +49,15 @@ call s:test_find('jscomplete#CompleteJS', {})
 call s:test_find('neobundle#get', {})
 call s:test_find('vimproc#system', {})
 call s:test_find('vimproc#cmd#system', {})
+
+let s:lnum = expand('<slnum>')
+exe join([
+\   'function! s:Test__1()',
+\   'echo "w"',
+\   'endfu'
+\], "\n")
+
+call s:test_find('s:Test__1', {'line': s:lnum + 2})
 
 let g:gf_vimfn_enable_filetypes = []
 
