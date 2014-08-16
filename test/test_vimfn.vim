@@ -199,7 +199,7 @@ function! s:__test_findPath_localFunc()
   call map(tests, 'v:val[0]')
 
   for test in tests
-    call s:assert.equals(FindPath(test, FuncType(test)), '%')
+    call s:assert.equals(FindPath(test, FuncType(test)), expand('%'))
   endfor
 endfunction
 
@@ -217,8 +217,8 @@ function! s:__test_findPath_autoload()
     call s:assert.is_string(test)
     call s:assert.true(exists('*' . test))
 
-    call s:assert.equals(FindPath('a#b#c#d', FuncType('')), 0)
-    call s:assert.not_equals(FindPath(test, FuncType(test)), 0)
+    call s:assert.equals(FindPath('a#b#c#d', FuncType('')), '')
+    call s:assert.not_equals(FindPath(test, FuncType(test)), '')
   endfor
 endfunction
 

@@ -82,36 +82,32 @@ function! s:aFnToPath(autoloadFnName) " :list {{{
   return ['autoload/' . t, 'plugin/' . t]
 endfunction "}}}
 
-function! s:findPath(fnName, fnType) " :string or 0 {{{
+function! s:findPath(fnName, fnType) " :string {{{
   let [name, type, _] = [a:fnName, a:fnType, s:FUNCTYPE]
   if type is 0
-    return 0
+    return ''
   elseif s:isExistsFn(name, type)
     return matchstr(split(s:redir('1verbose function ' . name), '\v\r\n|\n|\r')[1], '\v\f+$')
   elseif type is _.AUTOLOAD
     let it = filter(map(s:aFnToPath(name), 'globpath(&rtp, v:val)'), '!empty(v:val)')
-    return len(it) ? split(it[0], '\v\r\n|\n|\r')[0] : 0
+    return len(it) ? split(it[0], '\v\r\n|\n|\r')[0] : ''
   elseif type is _.LOCAL || type is _.SCRIPT
-    return '%'
+    return expand('%')
   endif
-  return 0
+  return ''
 endfunction "}}}
 
-function! s:findFnPos(fnName, fnType, path) " :dict or 0 {{{
+function! s:findFnPos(fnName, fnType, path) " :dict {{{
   let [name, type, path] = [a:fnName, a:fnType, a:path]
-  if !(type is 0 || path is 0)
-    let lines = path is '%' ? getline(1, '$') : readfile(expand(path))
-    let ret = s:findFnPosAtName(lines, name, type)
-    if (ret.line is 0 || ret.col is 0) && s:isExistsFn(name, type)
-      let ret = s:findFnPosAtValue(lines, name)
-        return (ret.line is 0 || ret.col is 0) ?
-        \   s:findFnPosAtName(lines, name, type) : ret
-        return ret
-    else
-      return s:findFnPosAtName(lines, name, type)
-    endif
-    return ret
+  if !(type is 0 || path is '')
+    let lines = readfile(path)
+    let ret = s:isExistsFn(name) ?
+    \     s:findFnPosAtValue(lines, name) :
+    \     s:findFnPosAtName(lines, name, type)
+  else
+    let ret = {'line': 0, 'col': 0}
   endif
+  return ret
 endfunction "}}}
 
 function! s:findFnPosAtName(lines, fnName, fnType) " :dict {{{
@@ -157,7 +153,6 @@ function! s:findFnPosAtValue(lines, fnName) " :dict {{{
     let line = strpart(lines[lnum], len(idnt))
 
     if _lnum is 0
-      "PP [line, _val[_lnum]]
       let col = match(line, '\vfu%[nction]\!?\s+') + 1
       if col
         let idx = strridx(line, substitute(a:fnName, '\V<snr>\d\+_', '', ''))
@@ -189,10 +184,7 @@ function! s:findFnPosAtValue(lines, fnName) " :dict {{{
     endif
 
     if _lnum < 0
-      return {
-      \   'line': lnum + 1,
-      \   'col': col
-      \}
+      return {'line': lnum + 1, 'col': col}
     endif
   endwhile
   if len(cache) is 1
@@ -249,45 +241,58 @@ function! s:isEnable() " :int {{{
 endfunction "}}}
 
 function! s:isJumpOK(d) " :int {{{
+  "echo PP(a:d)
   if a:d is 0
     return 0
-  endif
-  if a:d.line isnot 0 && a:d.col isnot 0
+  elseif a:d.line isnot 0 && a:d.col isnot 0
     return 1
   endif
-  return s:getOpt('jump_gun')
-endfunction
+  let gun = s:getOpt('jump_gun')
+  if     gun == 0 | return 0
+  elseif gun == 1 | return 1
+  elseif gun == 2 | return !buflisted(a:d.path)
+  elseif 1        | return 0 | endif
+endfunction "}}}
 
-function! s:find(fnName, ...) " :dict or 0 {{{
+function! s:find(fnName) " :dict or 0 {{{
   let name = a:fnName
   if type(name) is type('')
     let type = s:funcType(name)
-    let path = s:findPath(name, type)
-    let pos = s:findFnPos(name, type, path)
-    let ret = !a:0 && (pos is 0 || pos.line is 0) ?
-    \   s:refind(name, type) : extend({'path': expand(path)}, pos)
-    "echo PP(l:)
-    if ret is 0
-      unlet pos
-      let pos = s:findFnPosAtName(getline(1, '$'), name, type)
-      if pos.line isnot 0
-        return extend({'path': expand('%')}, pos)
+    if type
+      let path = s:findPath(name, type)
+      let pos = s:findFnPos(name, type, path)
+      let ret = extend({'path': path}, pos)
+      if !ret.line
+        let ret = s:refind(name, type, ret)
       endif
+      "echo PP(l:)
+      return ret
     endif
-    "echo PP(l:)
-    return ret
   endif
 endfunction "}}}
 
-function! s:refind(fnName, fnType) " :dict or 0 {{{
+function! s:refind(fnName, fnType, before) " :dict or 0 {{{
   let [name, type, _] = [a:fnName, a:fnType, s:FUNCTYPE]
   if type is _.SCRIPT
     let snr = s:sonr()
-    return snr ? s:find(printf('<snr>%d_%s', snr, split(name, ':')[1]), 1) : 0
+    if snr
+      let name = printf('<snr>%d_%s', snr, split(name, ':')[1])
+      if s:isExistsFn(name)
+        let path = expand('%')
+        return extend({'path': path}, s:findFnPosAtValue(getline(1, '$'), name))
+      endif
+    endif
   elseif s:dictFnIsRef(name)
-    return s:find(split(string(eval(name)), "'")[1], 1)
+    let name = split(string(eval(name)), "'")[1]
+    let path = s:findPath(name, _.SNR)
+    return extend({'path': path}, s:findFnPosAtValue(readfile(path), name))
+  elseif !type
+    let pos = s:findFnPosAtName(getline(1, '$'), name, type)
+    if pos.line
+      return extend({'path': expand('%')}, pos)
+    endif
   endif
-  return 0
+  return a:before
 endfunction "}}}
 
 " Autoload Functions {{{
