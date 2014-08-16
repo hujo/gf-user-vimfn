@@ -101,13 +101,11 @@ function! s:findFnPos(fnName, fnType, path) " :dict or 0 {{{
   let [name, type, path] = [a:fnName, a:fnType, a:path]
   if !(type is 0 || path is 0)
     let lines = path is '%' ? getline(1, '$') : readfile(expand(path))
-    if s:isExistsFn(name, type)
+    let ret = s:findFnPosAtName(lines, name, type)
+    if (ret.line is 0 || ret.col is 0) && s:isExistsFn(name, type)
       let ret = s:findFnPosAtValue(lines, name)
-        return (ret.line is 0 || ret.col is 0) ?
-        \   s:findFnPosAtName(lines, name, type) : ret
-    else
-      return s:findFnPosAtName(lines, name, type)
     endif
+    return ret
   endif
 endfunction "}}}
 
@@ -133,8 +131,7 @@ function! s:findFnPosAtName(lines, fnName, fnType) " :dict {{{
 endfunction "}}}
 
 function! s:findFnPosAtValue(lines, fnName) " :dict {{{
-  let _val = ['\v\C^\s*fu%[nction!]\s+[^(]+\s*\([^)]*\)']
-  \        + map(split(s:redir('function ' . a:fnName), '\v\r\n|\n|\r')[1:],
+  let _val = ['fu'] + map(split(s:redir('function ' . a:fnName), '\v\r\n|\n|\r')[1:],
   \           'substitute(v:val, ''\v^(\d+)?\s*'', '''' , '''')')
   let _len = len(_val) - 1
   let _lnum = _len
@@ -145,7 +142,7 @@ function! s:findFnPosAtValue(lines, fnName) " :dict {{{
   while lnum
     let lnum -= 1
     let line = lines[lnum]
-    if line =~# '\v^\s*\\'
+    if line =~# '\v^\s*[\\]'
       let lines[lnum - 1] .= substitute(line, '\v^\s*\\', '', '')
       continue
     endif
@@ -154,7 +151,7 @@ function! s:findFnPosAtValue(lines, fnName) " :dict {{{
     else
       let col = stridx(line, a:fnName) + 1
       if !col
-        let col = match(line, _val[0]) + 1
+        let col = stridx(line, _val[0]) + 1
       endif
     endif
     let _lnum = col ? _lnum - 1 : _len
