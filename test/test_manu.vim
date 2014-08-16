@@ -42,6 +42,7 @@ function! s:restore_opt()
   endfor
 endfunction
 
+
 function! s:test_find(input, ans)
   let F = function('gf#vimfn#find')
   let res =  F(a:input)
@@ -64,23 +65,30 @@ call s:Mess('Default Option') "{{{
     call s:test_find('vimproc#system', {})
     call s:test_find('vimproc#cmd#system', {})
 
+    let s:lnum = expand('<slnum>') + 1
+    function! s:deldel()
+    endfunction
+    delfunction s:deldel
+
+    call s:test_find('s:deldel', {'line': s:lnum})
+
     call s:Mess('function made with execute Lv1') "{{{
-    let s:lnum = expand('<slnum>')
-    exe join([
-    \   'function! s:Test__1()',
-    \   'echo "w"',
-    \   'endfu'
-    \], "\n")
-    call s:test_find('s:Test__1', {'line': s:lnum + 2})
+      let s:lnum = expand('<slnum>') + 2
+      exe join([
+      \   'function! s:Test__1()',
+      \   'echo "w"',
+      \   'endfu'
+      \], "\n")
+      call s:test_find('s:Test__1', {'line': s:lnum})
     "}}}
 
     call s:Mess('function made with execute Lv2') "{{{
-    let s:lnum = expand('<slnum>')
-    exe join([
-    \   'function! s:Test__2()',
-    \   'endfu'
-    \], "\n")
-    call s:test_find('s:Test__2', {'line': s:lnum + 2})
+      let s:lnum = expand('<slnum>') + 2
+      exe join([
+      \   'function! s:Test__2()',
+      \   'endfu'
+      \], "\n")
+      call s:test_find('s:Test__2', {'line': s:lnum})
     "}}}
 "}}}
 

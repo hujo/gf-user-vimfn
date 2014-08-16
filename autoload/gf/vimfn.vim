@@ -271,7 +271,7 @@ function! s:find(fnName, ...) " :dict or 0 {{{
       unlet pos
       let pos = s:findFnPosAtName(getline(1, '$'), name, type)
       if pos.line isnot 0
-        return extend({'path': expand('$')}, pos)
+        return extend({'path': expand('%')}, pos)
       endif
     endif
     "echo PP(l:)
