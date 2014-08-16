@@ -152,7 +152,7 @@ function! s:findFnPosAtValue(lines, fnName) " :dict {{{
     if _lnum
       let col = empty(_val[_lnum]) ? empty(line) : stridx(line, _val[_lnum])
     else
-      let col = stridx(line, substitute(a:fnName, '\v\c\<sid\>\d+_', '', '')) + 1
+      let col = stridx(line, a:fnName) + 1
       if !col
         let col = match(line, _val[0]) + 1
       endif
