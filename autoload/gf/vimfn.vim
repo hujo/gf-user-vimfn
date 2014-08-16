@@ -124,7 +124,7 @@ function! s:findFnPosAtName(lines, fnName, fnType) " :dict {{{
     let name = substitute(name, '\v\<\csnr\>\d+_', 's:', '')
   endif
 
-  let reg = '\v^\C\s*fu%[nction]\!?\s+' . escape(name, '.<>') . '\s*\('
+  let reg = '\v^\C\s*fu%[nction]\!?\s+' . escape(name, '.<>') . '\s*\([^)]*\)'
   while lnum
     let lnum -= 1
     let col = match(lines[lnum], reg) + 1
@@ -148,7 +148,8 @@ function! s:findFnPosAtValue(lines, fnName) " :dict {{{
   let _len = len(_val) - 1
   let _lnum = _len
   let lines = a:lines
-  let lnum = _len > 1 ? len(lines) : 0
+  let cache = []
+  let lnum = _len > 0 ? len(lines) : 0
 
   while lnum
     let lnum -= 1
@@ -157,7 +158,19 @@ function! s:findFnPosAtValue(lines, fnName) " :dict {{{
 
     if _lnum is 0
       "PP [line, _val[_lnum]]
-      let col = len(idnt) + match(line, '\vfu%[nction]\!?\s+') + 1
+      let col = match(line, '\vfu%[nction]\!?\s+') + 1
+      if col
+        let idx = strridx(line, substitute(a:fnName, '\V<snr>\d\+_', '', ''))
+        if idx is -1
+          let idx = strridx(line, substitute(a:fnName, '\v\C[a-zA-Z0-9_#:{}]+#', '#', ''))
+        endif
+        if idx isnot -1 && match(strpart(line, idx), '\v\s*\([^)]*\)') isnot -1
+          let col += len(idnt)
+        else
+          call add(cache, {'line': lnum + 1, 'col': col + len(idnt)})
+          let col = 0
+        endif
+      endif
     elseif _lnum is _len
       let col = 1 + match(line, '\vendfu%[nction]')
     else
@@ -182,6 +195,9 @@ function! s:findFnPosAtValue(lines, fnName) " :dict {{{
       \}
     endif
   endwhile
+  if len(cache) is 1
+    return cache[0]
+  endif
   return {'line': 0, 'col': 0}
 endfunction "}}}
 
@@ -215,32 +231,50 @@ endfunction "}}}
 let s:DEFAULT_OPTS = {
 \  'gf_vimfn_enable_filetypes': ['vim', 'help'],
 \  'gf_vimfn_open_action': 'tab drop',
+\  'gf_vimfn_jump_gun': 0,
 \}
 
 function! s:getOpt(optname) " :? {{{
-  let default = s:DEFAULT_OPTS[a:optname]
-  if !exists('g:' . a:optname)
+  let optname = 'gf_vimfn_' . a:optname
+  let default = s:DEFAULT_OPTS[optname]
+  if !exists('g:' . optname)
     return default
   endif
-  let opt = g:[a:optname]
+  let opt = g:[optname]
   return type(opt) is type(default) ? opt : default
 endfunction "}}}
 
 function! s:isEnable() " :int {{{
-  return index(s:getOpt('gf_vimfn_enable_filetypes'), &ft) isnot -1
+  return index(s:getOpt('enable_filetypes'), &ft) isnot -1
 endfunction "}}}
 
-function! s:find(fnName) " :dict or 0 {{{
+function! s:isJumpOK(d) " :int {{{
+  if a:d is 0
+    return 0
+  endif
+  if a:d.line isnot 0 && a:d.col isnot 0
+    return 1
+  endif
+  return s:getOpt('jump_gun')
+endfunction
+
+function! s:find(fnName, ...) " :dict or 0 {{{
   let name = a:fnName
   if type(name) is type('')
     let type = s:funcType(name)
     let path = s:findPath(name, type)
-    "echoe PP(l:)
     let pos = s:findFnPos(name, type, path)
-    "echoe PP(l:)
-    let ret = pos is 0 || pos.line is 0 || pos.col is 0 ?
+    let ret = !a:0 && (pos is 0 || pos.line is 0) ?
     \   s:refind(name, type) : extend({'path': expand(path)}, pos)
-    "echoe PP(l:)
+    "echo PP(l:)
+    if ret is 0
+      unlet pos
+      let pos = s:findFnPosAtName(getline(1, '$'), name, type)
+      if pos.line isnot 0
+        return extend({'path': expand('$')}, pos)
+      endif
+    endif
+    "echo PP(l:)
     return ret
   endif
 endfunction "}}}
@@ -249,17 +283,17 @@ function! s:refind(fnName, fnType) " :dict or 0 {{{
   let [name, type, _] = [a:fnName, a:fnType, s:FUNCTYPE]
   if type is _.SCRIPT
     let snr = s:sonr()
-    return snr ? s:find(printf('<snr>%d_%s', snr, split(name, ':')[1])) : 0
+    return snr ? s:find(printf('<snr>%d_%s', snr, split(name, ':')[1]), 1) : 0
   elseif s:dictFnIsRef(name)
-    return s:find(split(string(eval(name)), "'")[1])
+    return s:find(split(string(eval(name)), "'")[1], 1)
   endif
   return 0
 endfunction "}}}
 
 " Autoload Functions {{{
-function! gf#{s:NS}#sid(...)
+function! gf#{s:NS}#sid(...) "{{{
   return call(function('s:SID'), a:000)
-endfunction
+endfunction "}}}
 
 function! gf#{s:NS}#find(...) "{{{
   if s:isEnable()
@@ -267,7 +301,8 @@ function! gf#{s:NS}#find(...) "{{{
     \  a:1 is 0 ? s:pickCursor() : a:1 :
     \  s:pickCursor()
     let ret = s:find(s:pickFname(kwrd))
-    return ret
+    "echo PP(l:)
+    return s:isJumpOK(ret) ? ret : 0
   endif
 endfunction "}}}
 
