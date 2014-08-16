@@ -124,7 +124,7 @@ function! s:findFnPosAtName(lines, fnName, fnType) " :dict {{{
     let name = substitute(name, '\v\<\csnr\>\d+_', 's:', '')
   endif
 
-  let reg = '\v^\C\s*fu%[nction\!]\s+' . escape(name, '.<>') . '\s*\('
+  let reg = '\v^\C\s*fu%[nction]\!?\s+' . escape(name, '.<>') . '\s*\('
   while lnum
     let lnum -= 1
     let col = match(lines[lnum], reg) + 1
@@ -156,7 +156,8 @@ function! s:findFnPosAtValue(lines, fnName) " :dict {{{
     let line = strpart(lines[lnum], len(idnt))
 
     if _lnum is 0
-      let col = len(idnt) + match(line, '\vfu%[nction\!]\s+') + 1
+      "PP [line, _val[_lnum]]
+      let col = len(idnt) + match(line, '\vfu%[nction]\!?\s+') + 1
     elseif _lnum is _len
       let col = 1 + match(line, '\vendfu%[nction]')
     else
