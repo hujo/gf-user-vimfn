@@ -283,13 +283,13 @@ function! s:refind(fnName, fnType, before) " :dict or 0 {{{
       endif
     endif
   elseif s:dictFnIsRef(name)
-    let tmp = eval(name)
-    if type(tmp) is type(function('tr'))
-      let name = split(string(tmp), "'")[1]
+    let T = eval(name)
+    if type(T) is type(function('tr'))
+      let name = split(string(T), "'")[1]
       let path = s:findPath(name, _.SNR)
       return extend({'path': path}, s:findFnPosAtValue(readfile(path), name))
     endif
-    unlet tmp
+    unlet T
   elseif !type
     let pos = s:findFnPosAtName(getline(1, '$'), name, type)
     if pos.line
