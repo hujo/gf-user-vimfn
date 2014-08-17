@@ -314,7 +314,7 @@ endfunction "}}}
 function! gf#{s:NS}#open(...) "{{{
   let d = call(printf('gf#%s#find', s:NS), a:000)
   if type(d) is type({})
-    exe s:getOpt('gf_vimfn_open_action') d.path
+    exe s:getOpt('open_action') d.path
     call cursor(d.line, d.col)
   endif
 endfunction "}}}
