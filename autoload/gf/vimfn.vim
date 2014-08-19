@@ -26,9 +26,16 @@ function! s:_getVar(var)
 endfunction
 
 function! s:redir(cmd)
-  redir => result
-  silent exe a:cmd
-  redir END
+  let _list = &list
+  set nolist
+  let result = ''
+  try
+    redir => result
+    silent exe a:cmd
+    redir END
+  finally
+    let &list = _list
+  endtry
   return result
 endfunction
 
@@ -146,7 +153,7 @@ endfunction "}}}
 function! s:fnValueToList(fnValue) " :list {{{
   let lines = split(a:fnValue, '\v\r\n|\n|\r')
   for i in range(len(lines))
-    let lines[i] = substitute(lines[i], '\v^(\d+)?(\s|[>])+', '', 'g')
+    let lines[i] = substitute(lines[i], '\v^(\d+)\s+', '', '')
   endfor
   return lines
 endfunction "}}}
