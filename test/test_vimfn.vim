@@ -286,9 +286,6 @@ endfunction
 function! s:suite.test_pickUp()
   call s:optionTest('s:__test_pickCursorFname')
 endfunction
-function! s:suite.test_aFnToPath()
-  call s:optionTest('s:__test_aFnToPath')
-endfunction
 
 function! s:suite.__findPath__()
   let findPath = themis#suite('findPath')
