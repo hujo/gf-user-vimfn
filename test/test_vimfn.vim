@@ -165,32 +165,6 @@ function! s:__test_pickCursorFname()
   call s:assert.equals(lnum, s:test_pickUp_lnum + len(tests))
 endfunction
 
-function! s:__test_aFnToPath()
-  let AFnToPath = s:func('aFnToPath')
-
-  let tests = [
-  \ ['vimproc#system',
-  \       ['autoload/vimproc.vim' , 'plugin/vimproc.vim']],
-  \ ['gf#user#do',
-  \       ['autoload/gf/user.vim' , 'plugin/gf/user.vim']],
-  \ ['quickrun#runner#system#new',
-  \       ['autoload/quickrun/runner/system.vim', 'plugin/quickrun/runner/system.vim']],
-  \]
-
-  for test in tests
-    let input = test[0]
-    let a_pathes = test[1]
-    let r_pathes = AFnToPath(input)
-
-    " test test
-    call s:assert.is_string(input)
-    call s:assert.is_list(a_pathes)
-
-    " test main
-    call s:assert.equals(a_pathes, r_pathes)
-  endfor
-endfunction
-
 function! s:__test_findPath_localFunc()
   let FindPath = s:func('findPath')
   let FuncType = s:func('funcType')
