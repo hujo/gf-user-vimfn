@@ -78,8 +78,21 @@ endfunction
 " }}}
 
 function! s:aFnToPath(autoloadFnName) " :list {{{
+  let rtp = &rtp
+  if exists('*neobundle#_get_installed_bundles')
+    let lazy = map(filter(neobundle#_get_installed_bundles({}), 'v:val.lazy'), 'v:val.path')
+    if len(lazy)
+      let rtp .= ',' . join(lazy, ',')
+    endif
+  endif
   let t = join(split(a:autoloadFnName, '#')[:-2], '/') . '.vim'
-  return ['autoload/' . t, 'plugin/' . t]
+  for path in ['autoload/' . t, 'plugin/' . t]
+    let pathes = split(globpath(rtp, path), '\v\r\n|\n|\r')
+    if len(pathes)
+      return pathes[0]
+    endif
+  endfor
+  return ''
 endfunction "}}}
 
 function! s:findPath(fnName, fnType) " :string {{{
@@ -89,8 +102,7 @@ function! s:findPath(fnName, fnType) " :string {{{
   elseif s:isExistsFn(name, type)
     return matchstr(split(s:redir('1verbose function ' . name), '\v\r\n|\n|\r')[1], '\v\f+$')
   elseif type is _.AUTOLOAD
-    let it = filter(map(s:aFnToPath(name), 'globpath(&rtp, v:val)'), '!empty(v:val)')
-    return len(it) ? split(it[0], '\v\r\n|\n|\r')[0] : ''
+    return s:aFnToPath(name)
   elseif type is _.LOCAL || type is _.SCRIPT
     return expand('%')
   endif
@@ -100,7 +112,7 @@ endfunction "}}}
 function! s:findFnPos(fnName, fnType, path) " :dict {{{
   let [name, type, path] = [a:fnName, a:fnType, a:path]
   if !(type is 0 || path is '')
-    let lines = readfile(path)
+    let lines = readfile(path, 'b')
     let ret = s:isExistsFn(name) ?
     \     s:findFnPosAtValue(lines, name) :
     \     s:findFnPosAtName(lines, name, type)
@@ -134,7 +146,7 @@ endfunction "}}}
 function! s:fnValueToList(fnValue) " :list {{{
   let lines = split(a:fnValue, '\v\r\n|\n|\r')
   for i in range(len(lines))
-    let lines[i] = substitute(lines[i], '\v^(\d+)?\s+', '', '')
+    let lines[i] = substitute(lines[i], '\v^(\d+)?(\s|[>])+', '', 'g')
   endfor
   return lines
 endfunction "}}}
@@ -176,8 +188,8 @@ function! s:findFnPosAtValue(lines, fnName) " :dict {{{
       endif
     endif
 
+    "echo PP([line, _val[_lnum], col])
     if col
-      "PP [line, _val[_lnum]]
       let _lnum -= 1
     else
       let _lnum = _len
