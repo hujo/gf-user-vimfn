@@ -42,6 +42,7 @@ endfunction
 function! s:sonr()
   let files = split(s:redir('scriptnames'), '\v\r\n|\n|\r')
   let file = expand('%:p')
+  if empty(file) | return 0 | endif
   let i = len(files)
   while i
     let i -= 1
@@ -52,7 +53,7 @@ function! s:sonr()
 endfunction
 
 function! s:isExistsFn(fnName, ...)
-  return !empty(a:fnName) && exists('*' . a:fnName)
+  return stridx(a:fnName, 's:') is -1 && !empty(a:fnName) && exists('*' . a:fnName)
 endfunction
 
 function! s:dictFnIsRef(fn)
@@ -111,7 +112,8 @@ function! s:findPath(fnName, fnType) " :string {{{
   elseif type is _.AUTOLOAD
     return s:aFnToPath(name)
   elseif type is _.LOCAL || type is _.SCRIPT
-    return expand('%')
+    let path = expand('%')
+    return filereadable(path) ? path : ''
   endif
   return ''
 endfunction "}}}
@@ -119,7 +121,7 @@ endfunction "}}}
 function! s:findFnPos(fnName, fnType, path) " :dict {{{
   let [name, type, path] = [a:fnName, a:fnType, a:path]
   if !(type is 0 || path is '')
-    let lines = readfile(path, 'b')
+    let lines = readfile(path)
     let ret = s:isExistsFn(name) ?
     \     s:findFnPosAtValue(lines, name) :
     \     s:findFnPosAtName(lines, name, type)
@@ -297,8 +299,7 @@ function! s:refind(fnName, fnType, before) " :dict or 0 {{{
     if snr
       let name = printf('<snr>%d_%s', snr, split(name, ':')[1])
       if s:isExistsFn(name)
-        let path = expand('%')
-        return extend({'path': path}, s:findFnPosAtValue(getline(1, '$'), name))
+        return extend({'path': expand('%')}, s:findFnPosAtValue(getline(1, '$'), name))
       endif
     endif
   elseif s:dictFnIsRef(name)
