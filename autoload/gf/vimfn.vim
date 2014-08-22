@@ -5,239 +5,6 @@ set cpo&vim
 "}}}
 
 let s:NS = tolower(expand('<sfile>:t:r'))
-let s:FUNCTYPE = {
-\   'AUTOLOAD' : 1,
-\   'GLOBAL'   : 2,
-\   'LOCAL'    : 3,
-\   'SCRIPT'   : 4,
-\   'SNR'      : 5,
-\   'G_DICT'   : 6,
-\   'DICT'     : 0,
-\}
-
-" Util functions {{{
-function! s:SID(...)
-  let id = matchstr(string(function('s:SID')), '\C\v\<SNR\>\d+_')
-  return a:0 < 1 ? id : id . a:1
-endfunction
-
-function! s:_getVar(var)
-  return s:[a:var]
-endfunction
-
-function! s:redir(cmd)
-  let _list = &list
-  set nolist
-  let result = ''
-  try
-    redir => result
-    silent exe a:cmd
-    redir END
-  finally
-    let &list = _list
-  endtry
-  return result
-endfunction
-
-function! s:sonr()
-  let files = split(s:redir('scriptnames'), '\v\r\n|\n|\r')
-  let file = expand('%:p')
-  let i = len(files)
-  while i
-    let i -= 1
-    if stridx(files[i], file) + 1
-      return i + 1
-    endif
-  endwhile
-endfunction
-
-function! s:isExistsFn(fnName, ...)
-  return !empty(a:fnName) && exists('*' . a:fnName)
-endfunction
-
-function! s:dictFnIsRef(fn)
-  return a:fn =~ '\v\.' && !exists('*' . a:fn) && exists(a:fn)
-endfunction
-
-function! s:dictFnIsPure(fn)
-  return a:fn =~ '\v\.' && exists('*' . a:fn) && exists(a:fn)
-endfunction
-
-"}}}
-
-function! s:funcType(fnName) " :int {{{
-  let [name, prefix, _] = [a:fnName, a:fnName[:1], s:FUNCTYPE]
-
-  if name =~ '\v^\C[a-z1-9]*$'                  | return 0
-  elseif prefix =~ '\v\Cg:'
-    if name =~ '\v\.'                           | return _.G_DICT
-    elseif name[2] =~ '\v\C[A-Z]'               | return _.GLOBAL
-    endif
-  elseif prefix =~ '\v\Cl:' && name[2] isnot '' | return _.LOCAL
-  elseif prefix =~ '\v\Cs:' && name[2] isnot '' | return _.SCRIPT
-  elseif name =~ '\v^\c\<sid\>'                 | return _.SCRIPT
-  elseif name =~ '\v^\c\<snr\>'                 | return _.SNR
-  elseif name =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'     | return _.GLOBAL
-  elseif name =~ '\v\a+#[a-zA-Z_#]+$'           | return _.AUTOLOAD
-  endif
-  return 0
-endfunction
-" }}}
-
-function! s:aFnToPath(autoloadFnName) " :list {{{
-  let rtp = &rtp
-  if exists('*neobundle#_get_installed_bundles')
-    let lazy = map(filter(neobundle#_get_installed_bundles({}), 'v:val.lazy'), 'v:val.path')
-    if len(lazy)
-      let rtp .= ',' . join(lazy, ',')
-    endif
-  endif
-  let t = join(split(a:autoloadFnName, '#')[:-2], '/') . '.vim'
-  for path in ['autoload/' . t, 'plugin/' . t]
-    let pathes = split(globpath(rtp, path), '\v\r\n|\n|\r')
-    if len(pathes)
-      return pathes[0]
-    endif
-  endfor
-  return ''
-endfunction "}}}
-
-function! s:findPath(fnName, fnType) " :string {{{
-  let [name, type, _] = [a:fnName, a:fnType, s:FUNCTYPE]
-  if type is 0
-    return ''
-  elseif s:isExistsFn(name, type)
-    return matchstr(split(s:redir('1verbose function ' . name), '\v\r\n|\n|\r')[1], '\v\f+$')
-  elseif type is _.AUTOLOAD
-    return s:aFnToPath(name)
-  elseif type is _.LOCAL || type is _.SCRIPT
-    return expand('%')
-  endif
-  return ''
-endfunction "}}}
-
-function! s:findFnPos(fnName, fnType, path) " :dict {{{
-  let [name, type, path] = [a:fnName, a:fnType, a:path]
-  if !(type is 0 || path is '')
-    let lines = readfile(path, 'b')
-    let ret = s:isExistsFn(name) ?
-    \     s:findFnPosAtValue(lines, name) :
-    \     s:findFnPosAtName(lines, name, type)
-  else
-    let ret = {'line': 0, 'col': 0}
-  endif
-  return ret
-endfunction "}}}
-
-function! s:findFnPosAtName(lines, fnName, fnType) " :dict {{{
-  let [lines, name, type, _] = [a:lines, a:fnName, a:fnType, s:FUNCTYPE]
-  let lnum = len(lines)
-
-  if type is _.SCRIPT
-    let name = substitute(name, '\v(\Cs:|\<\csid\>)', '(s:|<(s|S)(i|I)(d|D)>)', '')
-  elseif type is _.SNR
-    let name = substitute(name, '\v\<\csnr\>\d+_', 's:', '')
-  endif
-
-  let reg = '\v^\C\s*fu%[nction]\!?\s+' . escape(name, '.<>') . '\s*\([^)]*\)'
-  while lnum
-    let lnum -= 1
-    let col = match(lines[lnum], reg) + 1
-    if col
-      return {'line': lnum + 1, 'col': col}
-    endif
-  endwhile
-  return {'line': 0, 'col': 0}
-endfunction "}}}
-
-function! s:fnValueToList(fnValue) " :list {{{
-  let lines = split(a:fnValue, '\v\r\n|\n|\r')
-  for i in range(len(lines))
-    let lines[i] = substitute(lines[i], '\v^(\d+)\s+', '', '')
-  endfor
-  return lines
-endfunction "}}}
-
-function! s:findFnPosAtValue(lines, fnName) " :dict {{{
-  let _val = s:fnValueToList(s:redir('function ' . a:fnName))
-  let _len = len(_val) - 1
-  let _lnum = _len
-  let lines = a:lines
-  let cache = []
-  let lnum = _len > 0 ? len(lines) : 0
-
-  while lnum
-    let lnum -= 1
-    let idnt = matchstr(lines[lnum], '\v^\s+')
-    let line = strpart(lines[lnum], len(idnt))
-
-    if _lnum is 0
-      let col = match(line, '\vfu%[nction]\!?\s+') + 1
-      if col
-        let idx = strridx(line, substitute(a:fnName, '\V<snr>\d\+_', '', ''))
-        if idx is -1
-          let idx = strridx(line, substitute(a:fnName, '\v\C[a-zA-Z0-9_#:{}]+#', '#', ''))
-        endif
-        if idx isnot -1 && match(strpart(line, idx), '\v\s*\([^)]*\)') isnot -1
-          let col += len(idnt)
-        else
-          call add(cache, {'line': lnum + 1, 'col': col + len(idnt)})
-          let col = 0
-        endif
-      endif
-    elseif _lnum is _len
-      let col = 1 + match(line, '\vendfu%[nction]')
-    else
-      let col = stridx(line, _val[_lnum]) + 1
-      if !col && line =~ '\v^[\\]'
-        let lines[lnum - 1] .= strpart(line, 1)
-        continue
-      endif
-    endif
-
-    "echo PP([line, _val[_lnum], col])
-    if col
-      let _lnum -= 1
-    else
-      let _lnum = _len
-    endif
-
-    if _lnum < 0
-      return {'line': lnum + 1, 'col': col}
-    endif
-  endwhile
-  if len(cache) is 1
-    return cache[0]
-  endif
-  return {'line': 0, 'col': 0}
-endfunction "}}}
-
-function! s:pickCursor() " :string {{{
-  let line = getline(line('.'))
-  let col = col('.') - 1
-  let pat = '\v\C[a-zA-Z0-9#._:<>]'
-  let ret = matchstr(line, pat . '*', col)
-  let mat = matchstr(line[col], pat)
-  if !empty(ret)
-    while col
-      let col -= 1
-      let mat = matchstr(line[col], pat)
-      if empty(mat)
-        break
-      endif
-      let ret = mat . ret
-    endwhile
-  endif
-  return ret
-endfunction "}}}
-
-function! s:pickFname(str) " :string {{{
-  return matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:.]+')
-endfunction "}}}
-
-function! s:pickCursorFname() " :string {{{
-  return s:pickFname(s:pickCursor())
-endfunction "}}}
 
 let s:DEFAULT_OPTS = {
 \  'gf_vimfn_enable_filetypes': ['vim', 'help'],
@@ -245,6 +12,7 @@ let s:DEFAULT_OPTS = {
 \  'gf_vimfn_jump_gun': 0,
 \}
 
+" Option functions {{{
 function! s:getOpt(optname) " :? {{{
   let optname = 'gf_vimfn_' . a:optname
   let default = s:DEFAULT_OPTS[optname]
@@ -272,50 +40,252 @@ function! s:isJumpOK(d) " :int {{{
   elseif gun == 2 | return !buflisted(a:d.path)
   elseif 1        | return 0 | endif
 endfunction "}}}
+"}}}
 
-function! s:find(fnName) " :dict or 0 {{{
-  let name = a:fnName
-  if type(name) is type('')
-    let type = s:funcType(name)
-    if type
-      let path = s:findPath(name, type)
-      let pos = s:findFnPos(name, type, path)
-      let ret = extend({'path': path}, pos)
-      if !ret.line
-        let ret = s:refind(name, type, ret)
-      endif
-      "echo PP(l:)
-      return ret
+" pick word functions {{{
+function! s:pickCursor() " :string {{{
+  let pat = '\v\C[a-zA-Z0-9#._:<>]'
+  let [line, col] = [getline(line('.')), col('.') - 1]
+  let [ret, mat] = [matchstr(line, pat . '*', col), matchstr(line[col], pat)]
+  if !empty(ret)
+    while col - 1 && (match(line[col], pat) + 1)
+      let col -= 1
+      let ret = line[col] . ret
+    endwhile
+  endif
+  return ret
+endfunction "}}}
+
+function! s:pickFname(str) " :string {{{
+  return matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:.]+')
+endfunction "}}}
+"}}}
+
+let s:FUNCTYPE = {
+\   'AUTOLOAD': 1, 'GLOBAL': 2, 'LOCAL': 3, 'SCRIPT': 4, 'SNR': 5, 'G_DICT': 6, 'DICT': 0,
+\}
+
+function! s:SID(...) "{{{
+  let id = matchstr(string(function('s:SID')), '\C\v\<SNR\>\d+_')
+  return a:0 < 1 ? id : id . a:1
+endfunction "}}}
+
+function! s:_getVar(var) "{{{
+  return s:[a:var]
+endfunction "}}}
+
+function! s:redir(cmd, ...) "{{{
+  let [_list, ret, &list] = [&list, '', 0]
+  redir => ret
+  silent exe a:cmd
+  redir END
+  let &list = _list
+  return a:0 && a:1 ? split(ret, '\v\r\n|\n|\r') : result
+endfunction "}}}
+
+function! s:type(fnName) "{{{
+  let [name, prefix, _] = [a:fnName, a:fnName[:1], s:FUNCTYPE]
+
+  if name =~ '\v^\C[a-z1-9]*$'                  | return 0
+  elseif prefix =~ '\v\Cg:'
+    if name =~ '\v\.'                           | return _.G_DICT
+    elseif name[2] =~ '\v\C[A-Z]'               | return _.GLOBAL
     endif
+  elseif prefix =~ '\v\Cl:' && name[2] isnot '' | return _.LOCAL
+  elseif prefix =~ '\v\Cs:' && name[2] isnot '' | return _.SCRIPT
+  elseif name =~ '\v^\c\<sid\>'                 | return _.SCRIPT
+  elseif name =~ '\v^\c\<snr\>'                 | return _.SNR
+  elseif name =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'     | return _.GLOBAL
+  elseif name =~ '\v\a+#[a-zA-Z_#]+$'           | return _.AUTOLOAD
+  elseif name =~ '\v\a+#[a-zA-Z_#.]$'           | return _.G_DICT
+  endif
+  return 0
+endfunction "}}}
+
+function! s:interrogation(lines, d, cache) " {{{
+  let [_val, lines] = [get(a:d, 'lines', ['']), copy(a:lines)]
+  let [_len, lnum] = [len(_val) - 1, len(lines)]
+  let _lnum = _len
+  let regexp = '\v\Cfu%[nction]\!?\s+([a-zA-Z0-9:#_<>.{}]+)\s*\([^)]*\)'
+
+  let is_cache = get(a:d, 'is_cache', 0)
+
+  while lnum
+    let lnum -= 1
+    let idnt = matchstr(lines[lnum], '\v^\s+')
+    let line = strpart(lines[lnum], len(idnt))
+
+    if _lnum is 0 && line[0] !=# '"' 
+      let col = match(line, regexp) + 1
+      if col
+        let name = matchlist(line, regexp)[1]
+        if s:identification(name, a:d)
+          call extend(a:d, {'line': lnum + 1, 'col': col + len(idnt)})
+          return 1
+        elseif is_cache 
+          call add(a:cache, {'line': lnum + 1, 'col': col + len(idnt), 'name': name})
+        endif
+      endif
+    else
+      if line[0] ==# '\'
+        let lines[lnum - 1] .= strpart(line, 1) | continue
+      endif
+    endif
+    let _lnum  = _lnum > 0 && 1 + stridx(line, (_lnum is _len ? 'endf' : _val[_lnum])) ?
+    \   _lnum - 1 : _len
+  endwhile
+endfunction "}}}
+
+function! s:identification(name, d) "{{{
+  let _ = s:FUNCTYPE
+  if a:d.type is _.AUTOLOAD
+    return matchstr(a:name, '\v#[^#]+$') ==# matchstr(a:d.name, '\v#[^#]+$')
+  elseif a:d.type is _.SNR
+    return substitute(a:name, '\v\c\<sid\>|s:', '', '')
+    \       ==# substitute(a:d.name, '\v\c\<snr\>\d+_', '', '')
+  elseif a:d.type is _.SCRIPT
+    return substitute(a:name, '\v\c\<sid\>|s:', '', '')
+    \       ==# substitute(a:d.name, '\v\c\<sid\>|s:', '', '')
+  else
+    return a:name ==# a:d.name
   endif
 endfunction "}}}
 
-function! s:refind(fnName, fnType, before) " :dict or 0 {{{
-  let [name, type, _] = [a:fnName, a:fnType, s:FUNCTYPE]
-  if type is _.SCRIPT
-    let snr = s:sonr()
-    if snr
-      let name = printf('<snr>%d_%s', snr, split(name, ':')[1])
-      if s:isExistsFn(name)
-        let path = expand('%')
-        return extend({'path': path}, s:findFnPosAtValue(getline(1, '$'), name))
+" Investigators {{{
+function! s:Investigator_exists_function() "{{{
+  let gator = {
+  \ 'name': 'exists_function',
+  \ 'description': 'search at the output of the `verbose function`',
+  \ 'disable': [0]
+  \}
+
+  function! gator._isRef(name) "{{{
+    "NOTE: 関数のタイプを考慮しない点に注意！
+    return exists(a:name) && type(eval(a:name)) is type(function('tr'))
+  endfunction "}}}
+  function! gator._toSNR(name) "{{{
+    let file = expand('%:p')
+    let files = [''] + (empty(file) ? [] : s:redir('scriptnames', 1))
+    for i in range(len(files))
+      if stridx(files[i], file) + 1 | break | endif
+    endfor
+    return printf('<snr>%d_%s', i, substitute(a:name, '\v\c\<sid\>|s:', '', ''))
+  endfunction "}}}
+
+  function! gator.tasks(d)
+    let _name = a:d.type is s:FUNCTYPE.SCRIPT ?
+    \ self._toSNR(a:d.name) : self._isRef(a:d.name) ? split(string(eval(a:d.name)), "'")[1] : a:d.name
+    if exists('*' . _name)
+      let _lines =
+      \   map(s:redir('1verbose function ' . _name, 1), 'substitute(v:val, ''\v^(\d+)?\s+'', '''', '''')')
+      let _path = matchstr(remove(_lines, 1), '\v\f+$')
+      "pathは確定
+      let a:d.path = _path
+      "NOTE: is_cache キャッシュをするかどうかの基準を決める？
+      return [{'name': _name, 'type': s:type(_name), 'path': _path, 'lines': _lines, 'is_cache': len(_lines) > 2},
+      \       {'name': _name, 'type': s:type(_name), 'path': _path}]
+    endif
+  endfunction
+
+  return gator
+endfunction "}}}
+
+function! s:Investigator_autoload_base() "{{{
+  let gator = {
+  \ 'enable': [s:FUNCTYPE.AUTOLOAD]
+  \}
+
+  function! gator._tasks(d, base)
+    let t = join(split(a:d.name, '#')[:-2], '/') . '.vim'
+    for path in (split(globpath(a:base, 'autoload/' . t), '\v\r\n|\n|\r')
+    \          + split(globpath(a:base, 'plugin/' . t), '\v\r\n|\n|\r'))
+      return [{'name': a:d.name, 'path': path, 'type': s:FUNCTYPE.AUTOLOAD}]
+    endfor
+  endfunction
+
+  return gator
+endfunction "}}}
+
+function! s:Investigator_autoload_rtp() "{{{
+  let gator = extend(s:Investigator_autoload_base(), {
+  \ 'name': 'autoload_base',
+  \ 'description': 'search the autoload function from &rtp',
+  \})
+
+  function! gator.tasks(d)
+    return self._tasks(a:d, &rtp)
+  endfunction
+
+  return gator
+endfunction "}}}
+
+function! s:Investigator_autoload_lazy() "{{{
+  let gator = extend(s:Investigator_autoload_base(), {
+  \ 'name': 'autoload_lazy',
+  \ 'description': 'search the autoload function from neobundle lazy plugin pathes',
+  \})
+
+  function! gator.tasks(d)
+    if exists('*neobundle#_get_installed_bundles')
+      let lazy = map(filter(neobundle#_get_installed_bundles({}), 'v:val.lazy'), 'v:val.path')
+      if len(lazy)
+        return self._tasks(a:d, join(lazy, ','))
       endif
     endif
-  elseif s:dictFnIsRef(name)
-    let T = eval(name)
-    if type(T) is type(function('tr'))
-      let name = split(string(T), "'")[1]
-      let path = s:findPath(name, _.SNR)
-      return extend({'path': path}, s:findFnPosAtValue(readfile(path), name))
+  endfunction
+
+  return gator
+endfunction "}}}
+
+function! s:Investigator_current_file() "{{{
+  let gator = {
+  \ 'name': 'current_file',
+  \ 'description': 'find in a file that is currently open',
+  \ 'disable': [0]
+  \}
+
+  function! gator.tasks(d)
+    return [{'name': a:d.name, 'path': expand('%:p'), 'type': a:d.type}]
+  endfunction
+
+  return gator
+endfunction "}}}
+
+"}}}
+
+let s:Investigators = [
+\ s:Investigator_exists_function(),
+\ s:Investigator_autoload_rtp(),
+\ s:Investigator_autoload_lazy(),
+\ s:Investigator_current_file(),
+\]
+
+function! s:find(fnName) " {{{
+  let fs = {}
+  let cache = []
+  let d = {'name': a:fnName, 'type': s:type(a:fnName), 'tasks': []}
+
+  for gator in s:Investigators
+    if (has_key(gator, 'disable') && index(gator.disable, d.type) isnot -1) ||
+    \  (has_key(gator, 'enable') && index(gator.enable, d.type) is -1)
+      continue
     endif
-    unlet T
-  elseif !type
-    let pos = s:findFnPosAtName(getline(1, '$'), name, type)
-    if pos.line
-      return extend({'path': expand('%')}, pos)
+    let todos = gator.tasks(d)
+    if type(todos) is type([])
+      let d.tasks = d.tasks + todos
     endif
-  endif
-  return a:before
+    unlet! todos
+  endfor
+
+  for task in d.tasks
+    if !has_key(fs, task.path)
+      let fs[task.path] = filereadable(task.path) ? readfile(task.path) : []
+    endif
+    if s:interrogation(fs[task.path], task, cache) | return task | endif
+  endfor
+
+  "PP cache
+  return len(cache) is 1 ? cache[0] : has_key(d, 'path') ? {'path': d.path, 'line': 0, 'col': 0} : {}
 endfunction "}}}
 
 " Autoload Functions {{{
@@ -329,8 +299,7 @@ function! gf#{s:NS}#find(...) "{{{
     \  a:1 is 0 ? s:pickCursor() : a:1 :
     \  s:pickCursor()
     let ret = s:find(s:pickFname(kwrd))
-    "echo PP(l:)
-    return s:isJumpOK(ret) ? ret : 0
+    return s:isJumpOK(empty(ret) ? 0 : ret) ? ret : 0
   endif
 endfunction "}}}
 
