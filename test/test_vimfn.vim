@@ -18,6 +18,12 @@ function! s:equals(a, b, mess)
   endif
 endfunction
 
+function! s:not_equals(a, b, mess)
+  if a:a is a:b
+    call s:assert.fail(a:mess)
+  endif
+endfunction
+
 function! s:option_1(fn)
   set ic re=1 magic
   call s:test[a:fn]()
@@ -36,6 +42,7 @@ endfunction
 "}}}
 
 let s:FILE = fnamemodify(expand('<sfile>'), ':p')
+let s:DIR = fnamemodify(s:FILE, ':h') . '/'
 let s:assert = themis#helper('assert')
 let s:suite = themis#suite('gf#vimfn')
 let s:test = {}
@@ -65,8 +72,13 @@ endfunction "}}}
 let s:_pick_lnum = expand('<slnum>')
 "call <sid>f1(<sid>f2(<sid>f3(<sid>f4())))
 "let s:ret = call('vimproc#system', [''])
+
+function! s:_data_testplug_() "{{{
+  return ['s:test_1', 's:test_2', 'testplug#test#test_3', 'testplug#test#test_4', 'Test_5', 'Test_6', 's:test_7']
+endfunction "}}}
 "}}}
-function! s:suite.__Util__()
+
+function! s:suite.__Util__() "{{{
   let utils = themis#suite('Utils')
   function! utils.type() "{{{
     function! s:test.type()
@@ -125,6 +137,23 @@ function! s:suite.__Util__()
     endfunction
     call s:option('identification')
   endfunction "}}}
-endfunction
+  function! utils.interrogation() "{{{
+    function! s:test.interrogation()
+      let F = s:func('interrogation')
+      let T = s:func('type')
+      let file = s:DIR . 'test_plugin/autoload/testplug/test.vim'
+      let line = readfile(file)
+      e `=file`
+      for name in filter(s:_data_testplug_(),
+      \ 'v:val != ''Test_6'' && v:val != ''testplug#test#test_4''')
+        let d = {'name': name, 'type': T(name), 'path': file}
+        call F(line, d, [])
+        call s:not_equals(get(d, 'line', 0), 0, string(d))
+      endfor
+      bdelete %
+    endfunction
+    call s:option('interrogation')
+  endfunction "}}}
+endfunction "}}}
 
 " vim:set et sts=2 ts=2 sw=2 fdm=marker:

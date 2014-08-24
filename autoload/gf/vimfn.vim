@@ -122,7 +122,7 @@ function! s:interrogation(lines, d, cache) " {{{
         if s:identification(name, a:d)
           call extend(a:d, {'line': lnum + 1, 'col': col + len(idnt)})
           return 1
-        elseif is_cache 
+        elseif is_cache
           call add(a:cache, {'line': lnum + 1, 'col': col + len(idnt), 'name': name})
         endif
       endif
@@ -131,8 +131,20 @@ function! s:interrogation(lines, d, cache) " {{{
         let lines[lnum - 1] .= strpart(line, 1) | continue
       endif
     endif
-    let _lnum  = _lnum > 0 && 1 + stridx(line, (_lnum is _len ? 'endf' : _val[_lnum])) ?
-    \   _lnum - 1 : _len
+
+    if _lnum > 0
+      if _lnum is _len
+        let _lnum = stridx(line, 'endf') + 1 ? _lnum - 1 : _len
+      else
+        let _lnum = stridx(line, _val[_lnum]) + 1 ? _lnum - 1 : _len
+        if _lnum == _len
+          " endf の前の行が endf の場合
+          let _lnum = stridx(line, 'endf') + 1 ? _lnum - 1 : _len
+        endif
+      endif
+    else
+      let _lnum = _len
+    endif
   endwhile
 endfunction "}}}
 
