@@ -86,18 +86,18 @@ endfunction "}}}
 function! s:type(fnName) "{{{
   let [name, prefix, _] = [a:fnName, a:fnName[:1], s:FUNCTYPE]
 
-  if name =~ '\v^\C[a-z1-9]*$'                  | return 0
-  elseif prefix =~ '\v\Cg:'
-    if name =~ '\v\.'                           | return _.G_DICT
-    elseif name[2] =~ '\v\C[A-Z]'               | return _.GLOBAL
+  if name =~ '\v^\C[a-z1-9]*$'                   | return 0
+  elseif prefix ==# 'g:'
+    if name =~ '\v\.'                            | return _.G_DICT
+    elseif name[2] =~ '\v\C[A-Z]'                | return _.GLOBAL
     endif
-  elseif prefix =~ '\v\Cl:' && name[2] isnot '' | return _.LOCAL
-  elseif prefix =~ '\v\Cs:' && name[2] isnot '' | return _.SCRIPT
-  elseif name =~ '\v^\c\<sid\>'                 | return _.SCRIPT
-  elseif name =~ '\v^\c\<snr\>'                 | return _.SNR
-  elseif name =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'     | return _.GLOBAL
-  elseif name =~ '\v\a+#[a-zA-Z_#]+[^#]$'       | return _.AUTOLOAD
-  elseif name =~ '\v\a+#[a-zA-Z_#.]+[^#]$'      | return _.G_DICT
+  elseif prefix ==# 'l:' && name[2] isnot ''     | return _.LOCAL
+  elseif prefix ==# 's:' && name[2] isnot ''     | return _.SCRIPT
+  elseif name =~ '\v^\c\<sid\>'                  | return _.SCRIPT
+  elseif name =~ '\v^\c\<snr\>'                  | return _.SNR
+  elseif name =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'      | return _.GLOBAL
+  elseif name =~ '\v\C\a+#[a-zA-Z_#]+[a-zA-Z_]$' | return _.AUTOLOAD
+  elseif name =~ '\v\C\a+#[a-zA-Z_#.]+[a-zA-Z_]$'| return _.G_DICT
   endif
   return 0
 endfunction "}}}
