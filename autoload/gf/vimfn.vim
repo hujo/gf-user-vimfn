@@ -48,7 +48,7 @@ function! s:pickCursor() " :string {{{
   let [line, col] = [getline(line('.')), col('.') - 1]
   let [ret, mat] = [matchstr(line, pat . '*', col), matchstr(line[col], pat)]
   if !empty(ret)
-    while col - 1 && (match(line[col], pat) + 1)
+    while col && (match(line[col], pat) + 1)
       let col -= 1
       let ret = line[col] . ret
     endwhile
@@ -96,8 +96,8 @@ function! s:type(fnName) "{{{
   elseif name =~ '\v^\c\<sid\>'                 | return _.SCRIPT
   elseif name =~ '\v^\c\<snr\>'                 | return _.SNR
   elseif name =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'     | return _.GLOBAL
-  elseif name =~ '\v\a+#[a-zA-Z_#]+$'           | return _.AUTOLOAD
-  elseif name =~ '\v\a+#[a-zA-Z_#.]$'           | return _.G_DICT
+  elseif name =~ '\v\a+#[a-zA-Z_#]+[^#]$'       | return _.AUTOLOAD
+  elseif name =~ '\v\a+#[a-zA-Z_#.]+[^#]$'      | return _.G_DICT
   endif
   return 0
 endfunction "}}}
@@ -249,6 +249,35 @@ function! s:Investigator_autoload_lazy() "{{{
   return gator
 endfunction "}}}
 
+function! s:Investigator_autoload_current() "{{{
+  let gator = extend(s:Investigator_autoload_base(), {
+  \ 'name': 'autoload_current',
+  \ 'description': 'find on the assumption that a runtime path the path where the current file',
+  \})
+
+  function! gator._plugdir()
+    let [ret, dirs] = [[], split(expand('%:p:h'), '\v[\/]')]
+    for dir in dirs
+      if dir ==# 'autoload' || dir ==# 'plugin'
+        return join(ret, fnamemodify('/', ':p')[-1:])
+      endif
+      call add(ret, dir)
+    endfor
+    return ''
+  endfunction
+
+  function! gator.tasks(d)
+    if empty(a:d.tasks)
+      let dir = self._plugdir()
+      if !empty(dir)
+        return self._tasks(a:d, dir)
+      endif
+    endif
+  endfunction
+
+  return gator
+endfunction "}}}
+
 function! s:Investigator_current_file() "{{{
   let gator = {
   \ 'name': 'current_file',
@@ -269,6 +298,7 @@ let s:Investigators = [
 \ s:Investigator_exists_function(),
 \ s:Investigator_autoload_rtp(),
 \ s:Investigator_autoload_lazy(),
+\ s:Investigator_autoload_current(),
 \ s:Investigator_current_file(),
 \]
 
@@ -311,6 +341,7 @@ function! gf#{s:NS}#find(...) "{{{
     \  a:1 is 0 ? s:pickCursor() : a:1 :
     \  s:pickCursor()
     let ret = s:find(s:pickFname(kwrd))
+    "echoe PP(ret)
     return s:isJumpOK(empty(ret) ? 0 : ret) ? ret : 0
   endif
 endfunction "}}}
