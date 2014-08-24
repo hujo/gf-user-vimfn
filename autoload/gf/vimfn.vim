@@ -80,7 +80,7 @@ function! s:redir(cmd, ...) "{{{
   silent exe a:cmd
   redir END
   let &list = _list
-  return a:0 && a:1 ? split(ret, '\v\r\n|\n|\r') : result
+  return a:0 && a:1 ? split(ret, '\v\r\n|\n|\r') : ret
 endfunction "}}}
 
 function! s:type(fnName) "{{{
