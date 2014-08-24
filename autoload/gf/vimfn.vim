@@ -48,7 +48,7 @@ function! s:pickCursor() " :string {{{
   let [line, col] = [getline(line('.')), col('.') - 1]
   let [ret, mat] = [matchstr(line, pat . '*', col), matchstr(line[col], pat)]
   if !empty(ret)
-    while col - 1 && (match(line[col], pat) + 1)
+    while col && (match(line[col], pat) + 1)
       let col -= 1
       let ret = line[col] . ret
     endwhile
