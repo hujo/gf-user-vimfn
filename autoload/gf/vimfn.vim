@@ -204,7 +204,8 @@ endfunction "}}}
 
 function! s:Investigator_autoload_base() "{{{
   let gator = {
-  \ 'enable': [s:FUNCTYPE.AUTOLOAD]
+  \ 'enable': [s:FUNCTYPE.AUTOLOAD],
+  \ 'empty': 1
   \}
 
   function! gator._tasks(d, base)
@@ -219,10 +220,10 @@ function! s:Investigator_autoload_base() "{{{
 endfunction "}}}
 
 function! s:Investigator_autoload_rtp() "{{{
-  let gator = extend(s:Investigator_autoload_base(), {
+  let gator = extend({
   \ 'name': 'autoload_base',
   \ 'description': 'search the autoload function from &rtp',
-  \})
+  \}, s:Investigator_autoload_base())
 
   function! gator.tasks(d)
     return self._tasks(a:d, &rtp)
@@ -232,10 +233,10 @@ function! s:Investigator_autoload_rtp() "{{{
 endfunction "}}}
 
 function! s:Investigator_autoload_lazy() "{{{
-  let gator = extend(s:Investigator_autoload_base(), {
+  let gator = extend({
   \ 'name': 'autoload_lazy',
   \ 'description': 'search the autoload function from neobundle lazy plugin pathes',
-  \})
+  \}, s:Investigator_autoload_base())
 
   function! gator.tasks(d)
     if exists('*neobundle#_get_installed_bundles')
@@ -250,10 +251,10 @@ function! s:Investigator_autoload_lazy() "{{{
 endfunction "}}}
 
 function! s:Investigator_autoload_current() "{{{
-  let gator = extend(s:Investigator_autoload_base(), {
+  let gator = extend({
   \ 'name': 'autoload_current',
   \ 'description': 'find on the assumption that a runtime path the path where the current file',
-  \})
+  \}, s:Investigator_autoload_base())
 
   function! gator._plugdir()
     let [ret, dirs] = [[], split(expand('%:p:h'), '\v[\/]')]
@@ -267,12 +268,24 @@ function! s:Investigator_autoload_current() "{{{
   endfunction
 
   function! gator.tasks(d)
-    if empty(a:d.tasks)
-      let dir = self._plugdir()
-      if !empty(dir)
-        return self._tasks(a:d, dir)
-      endif
+    let dir = self._plugdir()
+    if !empty(dir)
+      return self._tasks(a:d, dir)
     endif
+  endfunction
+
+  return gator
+endfunction "}}}
+
+function! s:Investigator_vital_help() "{{{
+  let gator = {
+  \ 'name': 'vital_help',
+  \ 'description': '',
+  \ 'empty': 1,
+  \ 'pattern': '\v\C^Vital\.[a-z]+$|^Vital\.[A-Z][a-z]+\.[a-zA-Z0-9._]+$',
+  \}
+
+  function! gator.tasks(d)
   endfunction
 
   return gator
@@ -299,6 +312,7 @@ let s:Investigators = [
 \ s:Investigator_autoload_rtp(),
 \ s:Investigator_autoload_lazy(),
 \ s:Investigator_autoload_current(),
+\ s:Investigator_vital_help(),
 \ s:Investigator_current_file(),
 \]
 
@@ -309,7 +323,9 @@ function! s:find(fnName) " {{{
 
   for gator in s:Investigators
     if (has_key(gator, 'disable') && index(gator.disable, d.type) isnot -1) ||
-    \  (has_key(gator, 'enable') && index(gator.enable, d.type) is -1)
+    \  (has_key(gator, 'enable') && index(gator.enable, d.type) is -1) ||
+    \  (get(gator, 'empty', 0) && !empty(d.tasks)) ||
+    \  (has_key(gator, 'pattern') && match(d.name, gator.pattern) is -1)
       continue
     endif
     let todos = gator.tasks(d)
