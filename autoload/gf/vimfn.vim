@@ -282,10 +282,18 @@ function! s:Investigator_vital_help() "{{{
   \ 'name': 'vital_help',
   \ 'description': '',
   \ 'empty': 1,
-  \ 'pattern': '\v\C^Vital\.[a-z]+$|^Vital\.[A-Z][a-z]+\.[a-zA-Z0-9._]+$',
+  \ 'pattern': '\v\C^Vital\.[a-z]+$|^Vital\.[A-Z][a-z]+\.[a-zA-Z0-9._]+[a-z0-9]$',
   \}
 
   function! gator.tasks(d)
+    let t = ['__latest__'] + split(a:d.name, '\v\.')[1:]
+    let p = 'autoload/vital/' . join(t[:-2], '/') . '.vim'
+    let name = t[-1]
+    let path = get(split(globpath(&rtp, p), '\v\r\n|\n|\r'), 0, '')
+    if !empty(path) && !empty(name)
+    "PP l:
+      return [{'name': 's:' . name, 'path': path, 'type': s:FUNCTYPE.SCRIPT}]
+    endif
   endfunction
 
   return gator
