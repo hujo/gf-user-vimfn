@@ -44,9 +44,10 @@ endfunction "}}}
 
 " pick word functions {{{
 function! s:pickCursor() " :string {{{
+  "NOTE: concealを考慮する？
   let pat = '\v\C[a-zA-Z0-9#._:<>]'
   let [line, col] = [getline(line('.')), col('.') - 1]
-  let [ret, mat] = [matchstr(line, pat . '*', col), matchstr(line[col], pat)]
+  let ret = matchstr(line, pat . '*', col)
   if !empty(ret)
     while col && (match(line[col], pat) + 1)
       let col -= 1

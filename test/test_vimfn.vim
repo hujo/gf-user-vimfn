@@ -12,12 +12,6 @@ function! s:var(name)
   return s:func('_getVar')(a:name)
 endfunction
 
-function! s:equals(a, b, mess)
-  if a:a isnot a:b
-    call s:assert.fail(a:mess)
-  endif
-endfunction
-
 function! s:not_equals(a, b, mess)
   if a:a is a:b
     call s:assert.fail(a:mess)
@@ -85,7 +79,7 @@ function! s:suite.__Util__() "{{{
       let F = s:func('type')
       for d in s:_data_type_()
         let res = F(d[0])
-        call s:equals(res, d[1], printf('fail %s [%d, %d]', d[0], d[1], res))
+        call s:assert.equals(res, d[1], printf('fail %s [%d, %d]', d[0], d[1], res))
       endfor
     endfunction
     call s:option('type')
@@ -108,7 +102,7 @@ function! s:suite.__Util__() "{{{
           call cursor(lnum, col)
           call s:assert.equals([line('.'), col('.')], [lnum, col])
           let res = F(C())
-          call s:equals(res, test[col],
+          call s:assert.equals(res, test[col],
           \ printf('%d line %d col should [%s] but res is [%s]', lnum, col, test[col], res))
         endfor
       endfor
@@ -132,7 +126,7 @@ function! s:suite.__Util__() "{{{
       \ ['s:find',         {'name': '<snr>1_find', 'type': _.SNR}],
       \ ['s:find',         {'name': '<SNR>1_find', 'type': _.SNR}],
       \]
-        call s:equals(1, F(d[0], d[1]), string(d))
+        call s:assert.equals(1, F(d[0], d[1]), string(d))
       endfor
     endfunction
     call s:option('identification')
@@ -148,7 +142,7 @@ function! s:suite.__Util__() "{{{
       \ 'v:val != ''Test_6'' && v:val != ''testplug#test#test_4''')
         let d = {'name': name, 'type': T(name), 'path': file}
         call F(line, d, [])
-        call s:not_equals(get(d, 'line', 0), 0, string(d))
+        call s:assert.not_equals(get(d, 'line', 0), 0, string(d))
       endfor
       bdelete %
     endfunction
