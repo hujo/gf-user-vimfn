@@ -283,7 +283,7 @@ function! s:Investigator_vital_help() "{{{
   \ 'name': 'vital_help',
   \ 'description': '',
   \ 'empty': 1,
-  \ 'pattern': '\v\C^Vital\.[a-z]+$|^Vital\.[A-Z][a-z]+\.[a-zA-Z0-9._]+[a-z0-9]$',
+  \ 'pattern': '\v\C^Vital\.[a-z]+$|^Vital\.[A-Z][a-z]+\.[a-zA-Z0-9._]+[a-zA-Z0-9]$',
   \}
 
   function! gator.tasks(d)
@@ -344,6 +344,8 @@ function! s:find(fnName) " {{{
     unlet! todos
   endfor
 
+  "echoe PP(l:)
+
   for task in d.tasks
     if !has_key(fs, task.path)
       let fs[task.path] = filereadable(task.path) ? readfile(task.path) : []
@@ -351,7 +353,8 @@ function! s:find(fnName) " {{{
     if s:interrogation(fs[task.path], task, cache) | return task | endif
   endfor
 
-  "PP cache
+  "echoe PP(l:)
+
   return len(cache) is 1 ? cache[0] : has_key(d, 'path') ? {'path': d.path, 'line': 0, 'col': 0} : {}
 endfunction "}}}
 
