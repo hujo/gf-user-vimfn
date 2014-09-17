@@ -28,7 +28,6 @@ function! s:isEnable() " :int {{{
 endfunction "}}}
 
 function! s:isJumpOK(d) " :int {{{
-  "echo PP(a:d)
   if a:d is 0
     return 0
   elseif a:d.line isnot 0 && a:d.col isnot 0
@@ -78,9 +77,12 @@ endfunction "}}}
 function! s:redir(cmd, ...) "{{{
   let [_list, ret, &list] = [&list, '', 0]
   redir => ret
-  silent exe a:cmd
-  redir END
-  let &list = _list
+  try
+    silent exe a:cmd
+  finally
+    redir END
+    let &list = _list
+  endtry
   return a:0 && a:1 ? split(ret, '\v\r\n|\n|\r') : ret
 endfunction "}}}
 
@@ -292,7 +294,6 @@ function! s:Investigator_vital_help() "{{{
     let name = t[-1]
     let path = get(split(globpath(&rtp, p), '\v\r\n|\n|\r'), 0, '')
     if !empty(path) && !empty(name)
-    "PP l:
       return [{'name': 's:' . name, 'path': path, 'type': s:FUNCTYPE.SCRIPT}]
     endif
   endfunction
@@ -316,14 +317,13 @@ endfunction "}}}
 
 "}}}
 
-let s:Investigators = [
-\ s:Investigator_exists_function(),
-\ s:Investigator_autoload_rtp(),
-\ s:Investigator_autoload_lazy(),
-\ s:Investigator_autoload_current(),
-\ s:Investigator_vital_help(),
-\ s:Investigator_current_file(),
-\]
+let s:Investigators = []
+call add(s:Investigators, s:Investigator_exists_function())
+call add(s:Investigators, s:Investigator_autoload_rtp())
+call add(s:Investigators, s:Investigator_autoload_lazy())
+call add(s:Investigators, s:Investigator_autoload_current())
+call add(s:Investigators, s:Investigator_vital_help())
+call add(s:Investigators, s:Investigator_current_file())
 
 function! s:find(fnName) " {{{
   let fs = {}
@@ -344,16 +344,13 @@ function! s:find(fnName) " {{{
     unlet! todos
   endfor
 
-  "echoe PP(l:)
-
   for task in d.tasks
+    let task.path = fnamemodify(expand(task.path), ':p')
     if !has_key(fs, task.path)
       let fs[task.path] = filereadable(task.path) ? readfile(task.path) : []
     endif
     if s:interrogation(fs[task.path], task, cache) | return task | endif
   endfor
-
-  "echoe PP(l:)
 
   return len(cache) is 1 ? cache[0] : has_key(d, 'path') ? {'path': d.path, 'line': 0, 'col': 0} : {}
 endfunction "}}}
@@ -369,7 +366,6 @@ function! gf#{s:NS}#find(...) "{{{
     \  a:1 is 0 ? s:pickCursor() : a:1 :
     \  s:pickCursor()
     let ret = s:find(s:pickFname(kwrd))
-    "echoe PP(ret)
     return s:isJumpOK(empty(ret) ? 0 : ret) ? ret : 0
   endif
 endfunction "}}}
