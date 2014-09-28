@@ -286,7 +286,7 @@ function! s:Investigator_vital_help() "{{{
   \ 'name': 'vital_help',
   \ 'description': '',
   \ 'empty': 1,
-  \ 'pattern': '\v\C^Vital\.[a-z]+$|^Vital\.[A-Z][a-z]+\.[a-zA-Z0-9._]+[a-zA-Z0-9]$',
+  \ 'pattern': '\v\C^Vital\.[a-z]+$|^Vital\.[A-Z][a-zA-Z0-9]+\.[a-zA-Z0-9._]+[a-zA-Z0-9]$',
   \}
 
   function! gator.tasks(d)
