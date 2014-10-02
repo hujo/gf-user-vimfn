@@ -100,8 +100,8 @@ function! s:type(fnName) "{{{
   elseif name =~ '\v^\c\<sid\>'                  | return _.SCRIPT
   elseif name =~ '\v^\c\<snr\>'                  | return _.SNR
   elseif name =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'      | return _.GLOBAL
-  elseif name =~ '\v\C\a+#[a-zA-Z_#]+[a-zA-Z_]$' | return _.AUTOLOAD
-  elseif name =~ '\v\C\a+#[a-zA-Z_#.]+[a-zA-Z_]$'| return _.G_DICT
+  elseif name =~ '\v\C\a+#[a-zA-Z_#]+$'          | return _.AUTOLOAD
+  elseif name =~ '\v\C\a+#[a-zA-Z_#.]+$'         | return _.G_DICT
   endif
   return 0
 endfunction "}}}
