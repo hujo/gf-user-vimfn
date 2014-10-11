@@ -191,7 +191,7 @@ function! s:Investigator_exists_function() "{{{
   function! gator.tasks(d)
     let _name = a:d.type is s:FUNCTYPE.SCRIPT ?
     \ self._toSNR(a:d.name) : self._isRef(a:d.name) ? split(string(eval(a:d.name)), "'")[1] : a:d.name
-    if exists('*' . _name)
+    if _name !~ '\v^\d+$' && exists('*' . _name)
       let _lines =
       \   map(s:redir('1verbose function ' . _name, 1), 'substitute(v:val, ''\v^(\d+)?\s+'', '''', '''')')
       let _path = matchstr(remove(_lines, 1), '\v\f+$')
