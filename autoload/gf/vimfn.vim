@@ -43,11 +43,12 @@ endfunction "}}}
 
 " pick word functions {{{
 function! s:pickCursor() " :string {{{
-  "NOTE: concealを考慮する？
+  " NOTE: concealがあるため、filetypeがHELPの時は<cfile>を使ってみる
+  if &l:ft == 'help' | return expand('<cfile>') | endif
   let pat = '\v\C[a-zA-Z0-9#._:<>]'
   let [line, col] = [getline(line('.')), col('.') - 1]
   let ret = matchstr(line, pat . '*', col)
-  if !empty(ret)
+  if ret != ''
     while col && (match(line[col], pat) + 1)
       let col -= 1
       let ret = line[col] . ret
@@ -181,7 +182,7 @@ function! s:Investigator_exists_function() "{{{
   endfunction "}}}
   function! gator._toSNR(name) "{{{
     let file = expand('%:p')
-    let files = [''] + (empty(file) ? [] : s:redir('scriptnames', 1))
+    let files = [''] + (file == '' ? [] : s:redir('scriptnames', 1))
     for i in range(len(files))
       if stridx(files[i], file) + 1 | break | endif
     endfor
@@ -273,7 +274,7 @@ function! s:Investigator_autoload_current() "{{{
 
   function! gator.tasks(d)
     let dir = self._plugdir()
-    if !empty(dir)
+    if dir != ''
       return self._tasks(a:d, dir)
     endif
   endfunction
@@ -294,7 +295,7 @@ function! s:Investigator_vital_help() "{{{
     let p = 'autoload/vital/' . join(t[:-2], '/') . '.vim'
     let name = t[-1]
     let path = get(split(globpath(&rtp, p), '\v\r\n|\n|\r'), 0, '')
-    if !empty(path) && !empty(name)
+    if path != '' && name != ''
       return [{'name': 's:' . name, 'path': path, 'type': s:FUNCTYPE.SCRIPT}]
     endif
   endfunction
