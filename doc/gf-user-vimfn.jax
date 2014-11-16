@@ -125,7 +125,7 @@ g:gf_vimfn_enable_filetypes                       *g:gf_vimfn_enable_filetypes*
     この変数がリストでない場合、
     またはこの変数が存在しない場合はデフォルトの値が使用されます。
 >
-    "default ['vim', 'help']
+    "default ['vim', 'vimspec', 'help']
 
 <
 g:gf_vimfn_open_action                                 *g:gf_vimfn_open_action*
@@ -183,8 +183,10 @@ TODO~
   関数が見つからなかった場合のメセージの表示を設定出来るようにする。
     gf#vimfn#open()の場合に限る。
 
-3. 2014-08-15
+3. 2014-08-15 {{{
   関数が組み込み関数だった場合にヘルプを開くように設定出来る様にする。
+  - 諦めた
+}}}
 
 ==============================================================================
 vim:tw=78:fo=tcq2mM:ts=8:ft=help:norl:fdm=marker

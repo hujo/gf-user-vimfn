@@ -7,7 +7,7 @@ set cpo&vim
 let s:FUNCTYPE = gf#vimfn#core#FUNCTYPE()
 
 let s:DEFAULT_OPTS = {
-\  'gf_vimfn_enable_filetypes': ['vim', 'help'],
+\  'gf_vimfn_enable_filetypes': ['vim', 'vimspec', 'help'],
 \  'gf_vimfn_open_action': 'tab drop',
 \  'gf_vimfn_jump_gun': 0,
 \}
