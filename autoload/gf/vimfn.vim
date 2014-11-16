@@ -4,7 +4,7 @@ let s:save_cpo = &cpo
 set cpo&vim
 "}}}
 
-let s:NS = tolower(expand('<sfile>:t:r'))
+let s:FUNCTYPE = gf#vimfn#core#FUNCTYPE()
 
 let s:DEFAULT_OPTS = {
 \  'gf_vimfn_enable_filetypes': ['vim', 'help'],
@@ -22,11 +22,9 @@ function! s:getOpt(optname) " :? {{{
   let opt = g:[optname]
   return type(opt) is type(default) ? opt : default
 endfunction "}}}
-
 function! s:isEnable() " :int {{{
   return index(s:getOpt('enable_filetypes'), &ft) isnot -1
 endfunction "}}}
-
 function! s:isJumpOK(d) " :int {{{
   if a:d is 0
     return 0
@@ -40,7 +38,6 @@ function! s:isJumpOK(d) " :int {{{
   elseif 1        | return 0 | endif
 endfunction "}}}
 "}}}
-
 " pick word functions {{{
 function! s:pickCursor() " :string {{{
   " NOTE: concealがあるため、filetypeがHELPの時は<cfile>を使ってみる
@@ -62,22 +59,82 @@ function! s:pickFname(str) " :string {{{
 endfunction "}}}
 "}}}
 
-let s:FUNCTYPE = gf#vimfn#core#FUNCTYPE()
-
 function! s:SID(...) "{{{
   let id = matchstr(string(function('s:SID')), '\C\v\<SNR\>\d+_')
   return a:0 < 1 ? id : id . a:1
 endfunction "}}}
-
 function! s:_getVar(var) "{{{
   return s:[a:var]
 endfunction "}}}
 
+function! s:Investigator_autoload_current() "{{{
+  let gator = extend({
+  \ 'name': 'autoload_current',
+  \ 'description': 'find on the assumption that a runtime path the path where the current file',
+  \}, gf#vimfn#core#Investigator('autoload_base'))
+
+  function! gator._plugdir()
+    let [ret, dirs] = [[], split(expand('%:p:h'), '\v[\/]')]
+    for dir in dirs
+      if dir ==# 'autoload' || dir ==# 'plugin'
+        return join(ret, fnamemodify('/', ':p')[-1:])
+      endif
+      call add(ret, dir)
+    endfor
+    return ''
+  endfunction
+
+  function! gator.tasks(d)
+    let dir = self._plugdir()
+    if dir != ''
+      return self._tasks(a:d, dir)
+    endif
+  endfunction
+
+  return gator
+endfunction "}}}
+function! s:Investigator_vital_help() "{{{
+  let gator = {
+  \ 'name': 'vital_help',
+  \ 'description': '',
+  \ 'empty': 1,
+  \ 'pattern': '\v\C^Vital\.[a-z]+$|^Vital\.[A-Z][a-zA-Z0-9]+\.[a-zA-Z0-9._]+[a-zA-Z0-9]$',
+  \}
+
+  function! gator.tasks(d)
+    let t = ['__latest__'] + split(a:d.name, '\v\.')[1:]
+    let p = 'autoload/vital/' . join(t[:-2], '/') . '.vim'
+    let name = t[-1]
+    let path = get(split(globpath(&rtp, p), '\v\r\n|\n|\r'), 0, '')
+    if path != '' && name != ''
+      return [{'name': 's:' . name, 'path': path, 'type': s:FUNCTYPE.SCRIPT}]
+    endif
+  endfunction
+
+  return gator
+endfunction "}}}
+function! s:Investigator_current_file() "{{{
+  let gator = {
+  \ 'name': 'current_file',
+  \ 'description': 'find in a file that is currently open',
+  \ 'disable': [0]
+  \}
+
+  function! gator.tasks(d)
+    return [{'name': a:d.name, 'path': expand('%:p'), 'type': a:d.type}]
+  endfunction
+
+  return gator
+endfunction "}}}
 
 let s:Investigators = []
 call map(
-\ ['exists_function', 'autoload_rtp', 'autoload_lazy', 'autoload_current', 'vital_help', 'current_file'],
-\ 'add(s:Investigators, gf#vimfn#core#Investigator(v:val))')
+\ ['exists_function', 'autoload_rtp', 'autoload_lazy'],
+\ 'add(s:Investigators, gf#vimfn#core#Investigator(v:val))'
+\)
+call add(s:Investigators, s:Investigator_autoload_current())
+call add(s:Investigators, s:Investigator_vital_help())
+call add(s:Investigators, s:Investigator_current_file())
 
 function! s:find(fnName) " {{{
   let fs = {}
@@ -113,7 +170,6 @@ endfunction "}}}
 function! gf#vimfn#sid(...) "{{{
   return call(function('s:SID'), a:000)
 endfunction "}}}
-
 function! gf#vimfn#find(...) "{{{
   if s:isEnable()
     let kwrd = a:0 > 0 ?
@@ -123,7 +179,6 @@ function! gf#vimfn#find(...) "{{{
     return s:isJumpOK(empty(ret) ? 0 : ret) ? ret : 0
   endif
 endfunction "}}}
-
 function! gf#vimfn#open(...) "{{{
   let d = call('gf#vimfn#find', a:000)
   if type(d) is type({})

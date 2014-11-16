@@ -142,7 +142,6 @@ function! s:Investigator_exists_function() "{{{
 
   return gator
 endfunction "}}}
-
 function! s:Investigator_autoload_base() "{{{
   let gator = {
   \ 'enable': [s:FUNCTYPE.AUTOLOAD],
@@ -159,7 +158,6 @@ function! s:Investigator_autoload_base() "{{{
 
   return gator
 endfunction "}}}
-
 function! s:Investigator_autoload_rtp() "{{{
   let gator = extend({
   \ 'name': 'autoload_base',
@@ -172,7 +170,6 @@ function! s:Investigator_autoload_rtp() "{{{
 
   return gator
 endfunction "}}}
-
 function! s:Investigator_autoload_lazy() "{{{
   let gator = extend({
   \ 'name': 'autoload_lazy',
@@ -191,67 +188,6 @@ function! s:Investigator_autoload_lazy() "{{{
   return gator
 endfunction "}}}
 
-function! s:Investigator_autoload_current() "{{{
-  let gator = extend({
-  \ 'name': 'autoload_current',
-  \ 'description': 'find on the assumption that a runtime path the path where the current file',
-  \}, s:Investigator_autoload_base())
-
-  function! gator._plugdir()
-    let [ret, dirs] = [[], split(expand('%:p:h'), '\v[\/]')]
-    for dir in dirs
-      if dir ==# 'autoload' || dir ==# 'plugin'
-        return join(ret, fnamemodify('/', ':p')[-1:])
-      endif
-      call add(ret, dir)
-    endfor
-    return ''
-  endfunction
-
-  function! gator.tasks(d)
-    let dir = self._plugdir()
-    if dir != ''
-      return self._tasks(a:d, dir)
-    endif
-  endfunction
-
-  return gator
-endfunction "}}}
-
-function! s:Investigator_vital_help() "{{{
-  let gator = {
-  \ 'name': 'vital_help',
-  \ 'description': '',
-  \ 'empty': 1,
-  \ 'pattern': '\v\C^Vital\.[a-z]+$|^Vital\.[A-Z][a-zA-Z0-9]+\.[a-zA-Z0-9._]+[a-zA-Z0-9]$',
-  \}
-
-  function! gator.tasks(d)
-    let t = ['__latest__'] + split(a:d.name, '\v\.')[1:]
-    let p = 'autoload/vital/' . join(t[:-2], '/') . '.vim'
-    let name = t[-1]
-    let path = get(split(globpath(&rtp, p), '\v\r\n|\n|\r'), 0, '')
-    if path != '' && name != ''
-      return [{'name': 's:' . name, 'path': path, 'type': s:FUNCTYPE.SCRIPT}]
-    endif
-  endfunction
-
-  return gator
-endfunction "}}}
-
-function! s:Investigator_current_file() "{{{
-  let gator = {
-  \ 'name': 'current_file',
-  \ 'description': 'find in a file that is currently open',
-  \ 'disable': [0]
-  \}
-
-  function! gator.tasks(d)
-    return [{'name': a:d.name, 'path': expand('%:p'), 'type': a:d.type}]
-  endfunction
-
-  return gator
-endfunction "}}}
 "}}}
 
 function! gf#vimfn#core#Investigator(name) "{{{
