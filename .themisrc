@@ -1,0 +1,2 @@
+set noswapfile nobackup
+filetype plugin indent on

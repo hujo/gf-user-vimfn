@@ -43,7 +43,7 @@ let s:test = {}
 
 " Test Data {{{
 function! s:_data_type_() "{{{
-  let _ = s:var('FUNCTYPE')
+  let _ = gf#vimfn#core#FUNCTYPE()
   let [_A, _G, _L, _S, _R, _GD, _D]
   \ = [_.AUTOLOAD, _.GLOBAL, _.LOCAL, _.SCRIPT, _.SNR, _.G_DICT, _.DICT]
   let data = [
@@ -72,19 +72,9 @@ function! s:_data_testplug_() "{{{
 endfunction "}}}
 "}}}
 
-function! s:suite.__Util__() "{{{
-  let utils = themis#suite('Utils')
-  function! utils.type() "{{{
-    function! s:test.type()
-      let F = s:func('type')
-      for d in s:_data_type_()
-        let res = F(d[0])
-        call s:assert.equals(res, d[1], printf('fail %s [%d, %d]', d[0], d[1], res))
-      endfor
-    endfunction
-    call s:option('type')
-  endfunction "}}}
-  function! utils.pick() "{{{
+function! s:suite.__PICK__() "{{{
+  let pick = themis#suite("autoload/gf/vimfn.vim s:")
+  function! pick.pick() "{{{
     function! s:test.pick() "{{{
       let C = s:func('pickCursor')
       let F = s:func('pickFname')
@@ -112,10 +102,22 @@ function! s:suite.__Util__() "{{{
     endfunction "}}}
     call s:option('pick')
   endfunction "}}}
-  function! utils.identification() "{{{
+endfunction "}}}
+
+function! s:suite.__CORE__() "{{{
+  let core = themis#suite('gf#vimfn#core#')
+  function! core.type() "{{{
+    function! s:test.type()
+      for d in s:_data_type_()
+        let res = gf#vimfn#core#type(d[0])
+        call s:assert.equals(res, d[1], printf('fail %s [%d, %d]', d[0], d[1], res))
+      endfor
+    endfunction
+    call s:option('type')
+  endfunction "}}}
+  function! core.identification() "{{{
     function! s:test.identification()
-      let F = s:func('identification')
-      let _ = s:var('FUNCTYPE')
+      let _ = gf#vimfn#core#FUNCTYPE()
       for d in [
       \ ['gf#{s:ns}#find', {'name': 'gf#user#find', 'type': _.AUTOLOAD}],
       \ ['{s:ns}#find',    {'name': 'gf#user#find', 'type': _.AUTOLOAD}],
@@ -126,22 +128,20 @@ function! s:suite.__Util__() "{{{
       \ ['s:find',         {'name': '<snr>1_find', 'type': _.SNR}],
       \ ['s:find',         {'name': '<SNR>1_find', 'type': _.SNR}],
       \]
-        call s:assert.equals(1, F(d[0], d[1]), string(d))
+        call s:assert.equals(1, gf#vimfn#core#identification(d[0], d[1]), string(d))
       endfor
     endfunction
     call s:option('identification')
   endfunction "}}}
-  function! utils.interrogation() "{{{
+  function! core.interrogation() "{{{
     function! s:test.interrogation()
-      let F = s:func('interrogation')
-      let T = s:func('type')
       let file = s:DIR . 'test_plugin/autoload/testplug/test.vim'
       let line = readfile(file)
       e `=file`
       for name in filter(s:_data_testplug_(),
       \ 'v:val != ''Test_6'' && v:val != ''testplug#test#test_4''')
-        let d = {'name': name, 'type': T(name), 'path': file}
-        call F(line, d, [])
+        let d = {'name': name, 'type': gf#vimfn#core#type(name), 'path': file}
+        call gf#vimfn#core#interrogation(line, d, [])
         call s:assert.not_equals(get(d, 'line', 0), 0, string(d))
       endfor
       bdelete %
