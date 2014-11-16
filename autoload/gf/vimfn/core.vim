@@ -193,6 +193,35 @@ endfunction "}}}
 function! gf#vimfn#core#Investigator(name) "{{{
   return call('s:Investigator_' . a:name, [])
 endfunction "}}}
+function! gf#vimfn#core#find(fnName, gators) " {{{
+  let fs = {}
+  let cache = []
+  let d = {'name': a:fnName, 'type': gf#vimfn#core#type(a:fnName), 'tasks': []}
+
+  for gator in a:gators
+    if (has_key(gator, 'disable') && index(gator.disable, d.type) isnot -1) ||
+    \  (has_key(gator, 'enable') && index(gator.enable, d.type) is -1) ||
+    \  (get(gator, 'empty', 0) && !empty(d.tasks)) ||
+    \  (has_key(gator, 'pattern') && match(d.name, gator.pattern) is -1)
+      continue
+    endif
+    let todos = gator.tasks(d)
+    if type(todos) is type([])
+      let d.tasks = d.tasks + todos
+    endif
+    unlet! todos
+  endfor
+
+  for task in d.tasks
+    let task.path = fnamemodify(expand(task.path), ':p')
+    if !has_key(fs, task.path)
+      let fs[task.path] = filereadable(task.path) ? readfile(task.path) : []
+    endif
+    if gf#vimfn#core#interrogation(fs[task.path], task, cache) | return task | endif
+  endfor
+
+  return len(cache) is 1 ? cache[0] : has_key(d, 'path') ? {'path': d.path, 'line': 0, 'col': 0} : {}
+endfunction "}}}
 
 " Restore CPO {{{
 let &cpo = s:save_cpo

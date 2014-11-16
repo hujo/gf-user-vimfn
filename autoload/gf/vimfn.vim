@@ -128,43 +128,13 @@ function! s:Investigator_current_file() "{{{
 endfunction "}}}
 
 let s:Investigators = []
-call map(
-\ ['exists_function', 'autoload_rtp', 'autoload_lazy'],
-\ 'add(s:Investigators, gf#vimfn#core#Investigator(v:val))'
-\)
+call add(s:Investigators, gf#vimfn#core#Investigator('exists_function'))
+call add(s:Investigators, gf#vimfn#core#Investigator('autoload_rtp'))
+call add(s:Investigators, gf#vimfn#core#Investigator('autoload_lazy'))
 call add(s:Investigators, s:Investigator_autoload_current())
 call add(s:Investigators, s:Investigator_vital_help())
 call add(s:Investigators, s:Investigator_current_file())
 
-function! s:find(fnName) " {{{
-  let fs = {}
-  let cache = []
-  let d = {'name': a:fnName, 'type': gf#vimfn#core#type(a:fnName), 'tasks': []}
-
-  for gator in s:Investigators
-    if (has_key(gator, 'disable') && index(gator.disable, d.type) isnot -1) ||
-    \  (has_key(gator, 'enable') && index(gator.enable, d.type) is -1) ||
-    \  (get(gator, 'empty', 0) && !empty(d.tasks)) ||
-    \  (has_key(gator, 'pattern') && match(d.name, gator.pattern) is -1)
-      continue
-    endif
-    let todos = gator.tasks(d)
-    if type(todos) is type([])
-      let d.tasks = d.tasks + todos
-    endif
-    unlet! todos
-  endfor
-
-  for task in d.tasks
-    let task.path = fnamemodify(expand(task.path), ':p')
-    if !has_key(fs, task.path)
-      let fs[task.path] = filereadable(task.path) ? readfile(task.path) : []
-    endif
-    if gf#vimfn#core#interrogation(fs[task.path], task, cache) | return task | endif
-  endfor
-
-  return len(cache) is 1 ? cache[0] : has_key(d, 'path') ? {'path': d.path, 'line': 0, 'col': 0} : {}
-endfunction "}}}
 
 " Autoload Functions {{{
 function! gf#vimfn#sid(...) "{{{
@@ -175,7 +145,7 @@ function! gf#vimfn#find(...) "{{{
     let kwrd = a:0 > 0 ?
     \  a:1 is 0 ? s:pickCursor() : a:1 :
     \  s:pickCursor()
-    let ret = s:find(s:pickFname(kwrd))
+    let ret = gf#vimfn#core#find(s:pickFname(kwrd), s:Investigators)
     return s:isJumpOK(empty(ret) ? 0 : ret) ? ret : 0
   endif
 endfunction "}}}
