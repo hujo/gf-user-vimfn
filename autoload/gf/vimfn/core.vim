@@ -47,7 +47,7 @@ function! gf#vimfn#core#interrogation(lines, d, cache) " {{{
   let [_val, lines] = [get(a:d, 'lines', ['']), copy(a:lines)]
   let [_len, lnum] = [len(_val) - 1, len(lines)]
   let _lnum = _len
-  let regexp = '\v\Cfu%[nction]\!?\s+([a-zA-Z0-9:#_<>.{}]+)\s*\([^)]*\)'
+  let regexp = '\v\Cfu%[nction](\!\s*|\s+)([a-zA-Z0-9:#_<>.{}]+)\s*\([^)]*\)'
 
   let is_cache = get(a:d, 'is_cache', 0)
 
@@ -59,7 +59,7 @@ function! gf#vimfn#core#interrogation(lines, d, cache) " {{{
     if _lnum is 0 && line[0] !=# '"' 
       let col = match(line, regexp) + 1
       if col
-        let name = matchlist(line, regexp)[1]
+        let name = matchlist(line, regexp)[2]
         if gf#vimfn#core#identification(name, a:d)
           call extend(a:d, {'line': lnum + 1, 'col': col + len(idnt)})
           return 1
