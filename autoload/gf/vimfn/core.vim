@@ -24,6 +24,20 @@ function! gf#vimfn#core#redir(cmd, ...) "{{{
   return a:0 && a:1 ? split(ret, '\v\r\n|\n|\r') : ret
 endfunction "}}}
 
+function! gf#vimfn#core#getuserrtpa() "{{{
+  let rtpa = []
+  let home = expand('~')
+  let dotvim = isdirectory(home . '/.vim') ? home . '/.vim' : isdirectory(home . '/vimfiles') ? home . '/vimfiles' : ''
+  if dotvim != ''
+    let rtpa = rtpa +  [dotvim . '/autoload']
+    let bundle = isdirectory(dotvim . '/bundle') ? dotvim . '/bundle' : ''
+    if bundle != ''
+      let rtpa = rtpa + split(globpath(bundle, '*/autoload'))
+    endif
+  endif
+  return rtpa
+endfunction "}}}
+
 function! gf#vimfn#core#type(fnName) "{{{
   let [name, prefix, _] = [a:fnName, a:fnName[:1], s:FUNCTYPE]
 
@@ -187,6 +201,22 @@ function! s:Investigator_autoload_lazy() "{{{
 
   return gator
 endfunction "}}}
+function! s:Investigator_autoload_user_rtpa() "{{{
+  let gator = extend({
+  \ 'name': 'autoload_user_rtpa',
+  \ 'description': 'search the autoload function from ~/dotvim and ~/dotvim/bundle',
+  \}, s:Investigator_autoload_base())
+
+  function! gator.tasks(d)
+    let rtpa = gf#vimfn#core#getuserrtpa()
+    if len(rtpa)
+      call map(rtpa, 'fnamemodify(v:val, '':h'')')
+      return self._tasks(a:d, join(rtpa, ','))
+    endif
+  endfunction
+
+  return gator
+endfunction "}}}
 function! s:Investigator_vital_help() "{{{
   let gator = {
   \ 'name': 'vital_help',
@@ -212,7 +242,8 @@ endfunction "}}}
 function! gf#vimfn#core#Investigator(name) "{{{
   return call('s:Investigator_' . a:name, [])
 endfunction "}}}
-function! gf#vimfn#core#find(fnName, gators) " {{{
+function! gf#vimfn#core#find(fnName, gators, ...) " {{{
+  "Note: a:1 == 1 is debag
   let fs = {}
   let cache = []
   let d = {'name': a:fnName, 'type': gf#vimfn#core#type(a:fnName), 'tasks': []}
@@ -239,7 +270,7 @@ function! gf#vimfn#core#find(fnName, gators) " {{{
     if gf#vimfn#core#interrogation(fs[task.path], task, cache) | return task | endif
   endfor
 
-  return len(cache) is 1 ? cache[0] : has_key(d, 'path') ? {'path': d.path, 'line': 0, 'col': 0} : {}
+  return len(cache) is 1 ? cache[0] : has_key(d, 'path') ? {'path': d.path, 'line': 0, 'col': 0} : a:0 && a:1 ? d : {}
 endfunction "}}}
 
 " Restore CPO {{{
