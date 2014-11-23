@@ -34,7 +34,7 @@ function! s:read_vitags()
         if line[:5] == 'Vital.'
           let line = split(line, '\v\s')[0]
           if line[-2:] == '()'
-            call add(ret, line)
+            call add(ret, line[:-3])
           endif
         endif
       endfor
