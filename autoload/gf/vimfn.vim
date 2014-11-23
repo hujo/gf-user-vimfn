@@ -93,26 +93,6 @@ function! s:Investigator_autoload_current() "{{{
 
   return gator
 endfunction "}}}
-function! s:Investigator_vital_help() "{{{
-  let gator = {
-  \ 'name': 'vital_help',
-  \ 'description': '',
-  \ 'empty': 1,
-  \ 'pattern': '\v\C^Vital\.[a-z]+$|^Vital\.[A-Z][a-zA-Z0-9]+\.[a-zA-Z0-9._]+[a-zA-Z0-9]$',
-  \}
-
-  function! gator.tasks(d)
-    let t = ['__latest__'] + split(a:d.name, '\v\.')[1:]
-    let p = 'autoload/vital/' . join(t[:-2], '/') . '.vim'
-    let name = t[-1]
-    let path = get(split(globpath(&rtp, p), '\v\r\n|\n|\r'), 0, '')
-    if path != '' && name != ''
-      return [{'name': 's:' . name, 'path': path, 'type': s:FUNCTYPE.SCRIPT}]
-    endif
-  endfunction
-
-  return gator
-endfunction "}}}
 function! s:Investigator_current_file() "{{{
   let gator = {
   \ 'name': 'current_file',
@@ -132,7 +112,7 @@ call add(s:Investigators, gf#vimfn#core#Investigator('exists_function'))
 call add(s:Investigators, gf#vimfn#core#Investigator('autoload_rtp'))
 call add(s:Investigators, gf#vimfn#core#Investigator('autoload_lazy'))
 call add(s:Investigators, s:Investigator_autoload_current())
-call add(s:Investigators, s:Investigator_vital_help())
+call add(s:Investigators, gf#vimfn#core#Investigator('vital_help'))
 call add(s:Investigators, s:Investigator_current_file())
 
 
