@@ -18,19 +18,19 @@ function! s:not_equals(a, b, mess)
   endif
 endfunction
 
-function! s:option_1(fn)
+function! s:option_1(fn, ...)
   set ic re=1 magic
-  call s:test[a:fn]()
+  call s:test[a:fn](a:000)
 endfunction
 
-function! s:option_2(fn)
+function! s:option_2(fn, ...)
   set noic re=2 nomagic
-  call s:test[a:fn]()
+  call s:test[a:fn](a:000)
 endfunction
 
-function! s:option(fn)
-  call s:option_1(a:fn)
-  call s:option_2(a:fn)
+function! s:option(...)
+  call call('s:option_1', a:000)
+  call call('s:option_2', a:000)
   set ic&vim re&vim magic&vim
 endfunction
 "}}}
@@ -38,7 +38,7 @@ endfunction
 let s:FILE = fnamemodify(expand('<sfile>'), ':p')
 let s:DIR = fnamemodify(s:FILE, ':h') . '/'
 let s:assert = themis#helper('assert')
-let s:suite = themis#suite('gf#vimfn')
+let s:suite = themis#suite('autoload/')
 let s:test = {}
 
 " Test Data {{{
@@ -73,9 +73,9 @@ endfunction "}}}
 "}}}
 
 function! s:suite.__PICK__() "{{{
-  let pick = themis#suite("autoload/gf/vimfn.vim s:")
+  let pick = themis#suite("gf/vimfn.vim")
   function! pick.pick() "{{{
-    function! s:test.pick() "{{{
+    function! s:test.pick(...) "{{{
       let C = s:func('pickCursor')
       let F = s:func('pickFname')
       let tests = [
@@ -105,9 +105,9 @@ function! s:suite.__PICK__() "{{{
 endfunction "}}}
 
 function! s:suite.__CORE__() "{{{
-  let core = themis#suite('gf#vimfn#core#')
+  let core = themis#suite('gf/vimfn/core.vim')
   function! core.type() "{{{
-    function! s:test.type()
+    function! s:test.type(...)
       for d in s:_data_type_()
         let res = gf#vimfn#core#type(d[0])
         call s:assert.equals(res, d[1], printf('fail %s [%d, %d]', d[0], d[1], res))
@@ -116,7 +116,7 @@ function! s:suite.__CORE__() "{{{
     call s:option('type')
   endfunction "}}}
   function! core.identification() "{{{
-    function! s:test.identification()
+    function! s:test.identification(...)
       let _ = gf#vimfn#core#FUNCTYPE()
       for d in [
       \ ['gf#{s:ns}#find', {'name': 'gf#user#find', 'type': _.AUTOLOAD}],
@@ -134,19 +134,20 @@ function! s:suite.__CORE__() "{{{
     call s:option('identification')
   endfunction "}}}
   function! core.interrogation() "{{{
-    function! s:test.interrogation()
+    function! s:test.interrogation(...)
       let file = s:DIR . 'test_plugin/autoload/testplug/test.vim'
       let line = readfile(file)
       e `=file`
-      for name in filter(s:_data_testplug_(),
-      \ 'v:val != ''Test_6'' && v:val != ''testplug#test#test_4''')
+      for name in a:1
         let d = {'name': name, 'type': gf#vimfn#core#type(name), 'path': file}
         call gf#vimfn#core#interrogation(line, d, [])
         call s:assert.not_equals(get(d, 'line', 0), 0, string(d))
       endfor
       bdelete %
     endfunction
-    call s:option('interrogation')
+    call s:option('interrogation',
+    \   's:test_1', 's:test_2', 'testplug#test#test_3', 'Test_5', 's:test_7'
+    \)
   endfunction "}}}
 endfunction "}}}
 

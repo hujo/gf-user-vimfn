@@ -18,7 +18,7 @@ function! s:test_2() "{{{
   \     'there is a backslash at the beginning of the line'
 endfunction "}}}
 
-let s:lnums.['testplug#test#test_3'] = expand('<slnum>') + 1
+let s:lnums['testplug#test#test_3'] = expand('<slnum>') + 1
 function! testplug#test#test_3() "{{{
   let name = 'testplug#test#test_3'
   let description = 'basic autoload function'
