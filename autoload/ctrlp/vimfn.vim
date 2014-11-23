@@ -11,7 +11,7 @@ if !exists('s:id')
   \ 'sname': 'vimfn',
   \ 'type': 'line',
   \ 'nolim': 1,
-  \ 'sort': 0
+  \ 'sort': 1
   \ })
   let s:id = g:ctrlp_builtins + len(g:ctrlp_ext_vars)
 endif
@@ -26,8 +26,9 @@ endfunction
 function! s:read_vitags()
   let hts = split(globpath(&rtp, 'doc/tags'), '\n')
   let ret = []
+  let vimrtp = fnamemodify(expand('$VIMRUNTIME/doc'), ':p:h:gs?\\?/?')
   for ht in hts
-    if fnamemodify(ht, ':p:h') !=# fnamemodify(expand('$VIMRUNTIME/doc'), ':p:h')
+    if tr(fnamemodify(ht, ':p:h'), '\', '/') !=# vimrtp
       let hf = readfile(fnamemodify(ht, ':p'))
       for line in hf
         if line[:5] == 'Vital.'
@@ -43,16 +44,39 @@ function! s:read_vitags()
   return ret
 endfunction
 
+function! s:loaded_rtpas()
+  let ret = []
+  let loaded = gf#vimfn#core#redir('scriptnames', 1)
+  for path in loaded
+    let path = tr(path, '\', '/')
+    if stridx(path, '/autoload/') != -1
+      call add(ret, fnamemodify(split(path)[-1], ':p'))
+    endif
+  endfor
+  return ret
+endfunction
+
 function! s:read_atags() abort
   let ret = []
   if executable('ctags')
-    let rtpa = [fnamemodify(expand('$VIMRUNTIME/autoload'), ':p')] + gf#vimfn#core#getuserrtpa()
-    call filter(rtpa, 'isdirectory(v:val)')
+    let rtpa = []
+    let base = join([fnamemodify(expand('$VIMRUNTIME/autoload'), ':p')] + gf#vimfn#core#getuserrtpa(), ',')
+    let loaded = s:loaded_rtpas()
+    for path in split(globpath(base, '**/*.vim'), '\n')
+      let path = tr(path, '\', '/')
+      if stridx(path, '__latest__') != -1
+        continue
+      endif
+      if index(loaded, path) == -1
+        call add(rtpa, '"' . path . '"')
+      endif
+    endfor
+    "echoe join(rtpa, "\n")
     if len(rtpa)
-      let output = system(printf('ctags -xR --languages=vim --vim-kinds=f %s', join(map(rtpa, '''"'' . v:val . ''"'''))))
+      let output = system(printf('ctags -x --languages=vim --vim-kinds=f %s', join(rtpa)))
       for line in split(output, '\v\r\n|\r|\n')
-        let afn = matchstr(line, '\v^[a-z]+#[a-zA-Z0-9_#]+\ze[ \t]')
-        if afn !=# ''
+        let afn = split(line)[0]
+        if stridx(afn, '#') != -1
           call add(ret, afn)
         endif
       endfor
@@ -75,12 +99,15 @@ function! ctrlp#vimfn#init()
       call add(s:Invs, gf#vimfn#core#Investigator('autoload_rtp'))
       call add(s:Invs, gf#vimfn#core#Investigator('autoload_user_rtpa'))
     endif
-    let s:tags = vitags + atags
+    let s:tags = sort(vitags + atags)
   endif
-  let ret = map(gf#vimfn#core#redir('function', 1), 'split(v:val)[1]')
-  let ret = map(ret, 'split(v:val, "(")[0]')
-  let ret = ret + s:tags
-  return ret
+  for line in gf#vimfn#core#redir('function', 1)
+    let line = split(split(line)[1], '(')[0]
+    if index(s:tags, line) == -1
+      call add(s:tags, line)
+    endif
+  endfor
+  return sort(s:tags)
 endfunction
 
 function! ctrlp#vimfn#accept(mode, str)

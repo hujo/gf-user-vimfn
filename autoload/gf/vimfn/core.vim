@@ -35,7 +35,7 @@ function! gf#vimfn#core#getuserrtpa() "{{{
       let rtpa = rtpa + split(globpath(bundle, '*/autoload'))
     endif
   endif
-  return rtpa
+  return map(rtpa, 'fnamemodify(v:val, '':gs?\\?/?'')')
 endfunction "}}}
 
 function! gf#vimfn#core#type(fnName) "{{{
