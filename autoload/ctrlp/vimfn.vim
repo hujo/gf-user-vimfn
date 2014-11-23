@@ -60,6 +60,7 @@ function! s:read_atags() abort
   let ret = []
   if executable('ctags')
     let rtpa = []
+    let quot = &sh =~# 'sh' ? "'" : '"'
     let base = join([fnamemodify(expand('$VIMRUNTIME/autoload'), ':p')] + gf#vimfn#core#getuserrtpa(), ',')
     let loaded = s:loaded_rtpas()
     for path in split(globpath(base, '**/*.vim'), '\n')
@@ -68,7 +69,7 @@ function! s:read_atags() abort
         continue
       endif
       if index(loaded, path) == -1
-        call add(rtpa, '"' . path . '"')
+        call add(rtpa, quot . path . quot)
       endif
     endfor
     "echoe join(rtpa, "\n")
