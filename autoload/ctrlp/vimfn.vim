@@ -15,7 +15,15 @@ if !exists('s:id')
 endif
 
 let s:Invs = [gf#vimfn#core#Investigator('exists_function')]
-let s:Tagcmd = ''
+let s:Tagcmd = 'ctags -x --languages=vim --vim-kinds=f %s'
+let s:LoadedScripts = []
+let s:Progres = [
+\   ' *      ',
+\   ' **     ',
+\   ' ***    ',
+\   ' *****  ',
+\   ' ****** '
+\]
 
 function! ctrlp#vimfn#id()
   return s:id
@@ -44,8 +52,7 @@ endfunction
 
 function! s:loaded_rtpas()
   let ret = []
-  let loaded = gf#vimfn#core#redir('scriptnames', 1)
-  for path in loaded
+  for path in gf#vimfn#core#redir('scriptnames', 1)
     let path = tr(path, '\', '/')
     if stridx(path, '/autoload/') != -1
       call add(ret, fnamemodify(split(path)[-1], ':p'))
@@ -72,7 +79,7 @@ function! s:read_atags() abort
     endfor
     "echoe join(rtpa, "\n")
     if !empty(rtpa)
-      let output = system(printf('ctags -x --languages=vim --vim-kinds=f %s', join(rtpa)))
+      let output = system(printf(s:Tagcmd, join(rtpa)))
       for line in split(output, '\v\r\n|\r|\n')
         let afn = split(line)[0]
         if stridx(afn, '#') != -1
@@ -85,17 +92,7 @@ function! s:read_atags() abort
 endfunction
 
 
-let s:Progres = [
-\   ' *      ',
-\   ' **     ',
-\   ' ***    ',
-\   ' *****  ',
-\   ' ****** '
-\]
-"Note:
-" ctagsが使えるならから行番号をとれば?
-"
-function! ctrlp#vimfn#init()
+function! s:makeTags()
   if !exists('s:tags')
     silent! cal ctrlp#progress(s:Progres[0])
     let vitags = s:read_vitags()
@@ -111,7 +108,17 @@ function! ctrlp#vimfn#init()
       call add(s:Invs, gf#vimfn#core#Investigator('autoload_user_rtpa'))
     endif
     silent! cal ctrlp#progress(s:Progres[4])
-    let s:tags = vitags + atags
+    let s:tags = sort(vitags + atags)
+  endif
+endfunction
+" Note:
+" ctagsが使えるならから行番号をとれば?
+"
+function! ctrlp#vimfn#init()
+  call s:makeTags()
+  let loaded = gf#vimfn#core#redir('scriptnames', 1)
+  if len(s:LoadedScripts) == len(loaded)
+    return s:tags
   endif
   for line in gf#vimfn#core#redir('function', 1)
     let line = strpart(strpart(line, 0, stridx(line, '(')), 9)
@@ -119,6 +126,7 @@ function! ctrlp#vimfn#init()
       call add(s:tags, line)
     endif
   endfor
+  let s:LoadedScripts = loaded
   return sort(s:tags)
 endfunction
 
