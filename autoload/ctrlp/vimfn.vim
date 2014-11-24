@@ -11,7 +11,7 @@ if !exists('s:id')
   \ 'sname': 'vimfn',
   \ 'type': 'line',
   \ 'nolim': 1,
-  \ 'sort': 1
+  \ 'sort': 0
   \ })
   let s:id = g:ctrlp_builtins + len(g:ctrlp_ext_vars)
 endif
@@ -100,15 +100,15 @@ function! ctrlp#vimfn#init()
       call add(s:Invs, gf#vimfn#core#Investigator('autoload_rtp'))
       call add(s:Invs, gf#vimfn#core#Investigator('autoload_user_rtpa'))
     endif
-    let s:tags = sort(vitags + atags)
+    let s:tags = vitags + atags
   endif
   for line in gf#vimfn#core#redir('function', 1)
-    let line = split(split(line)[1], '(')[0]
+    let line = strpart(strpart(line, 0, stridx(line, '(')), 9)
     if index(s:tags, line) == -1
       call add(s:tags, line)
     endif
   endfor
-  return sort(s:tags)
+  return s:tags
 endfunction
 
 function! ctrlp#vimfn#accept(mode, str)
