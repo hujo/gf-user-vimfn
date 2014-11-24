@@ -33,7 +33,7 @@ function! s:read_vitags()
       for line in hf
         if line[:5] == 'Vital.'
           let line = split(line, '\v\s')[0]
-          if line[-2:] == '()'
+          if line[-2:] == '()' && stridx(line, '-') == -1
             call add(ret, line[:-3])
           endif
         endif
