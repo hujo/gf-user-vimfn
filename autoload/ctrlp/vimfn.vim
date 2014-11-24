@@ -9,9 +9,7 @@ if !exists('s:id')
   \ 'accept': 'ctrlp#vimfn#accept',
   \ 'lname': 'vim userfunc',
   \ 'sname': 'vimfn',
-  \ 'type': 'line',
-  \ 'nolim': 0,
-  \ 'sort': 0
+  \ 'nolim': 1,
   \ })
   let s:id = g:ctrlp_builtins + len(g:ctrlp_ext_vars)
 endif
@@ -121,7 +119,7 @@ function! ctrlp#vimfn#init()
       call add(s:tags, line)
     endif
   endfor
-  return s:tags
+  return sort(s:tags)
 endfunction
 
 function! ctrlp#vimfn#accept(mode, str)
