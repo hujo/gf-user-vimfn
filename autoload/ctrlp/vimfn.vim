@@ -10,7 +10,7 @@ if !exists('s:id')
   \ 'lname': 'vim userfunc',
   \ 'sname': 'vimfn',
   \ 'type': 'line',
-  \ 'nolim': 1,
+  \ 'nolim': 0,
   \ 'sort': 0
   \ })
   let s:id = g:ctrlp_builtins + len(g:ctrlp_ext_vars)
@@ -63,7 +63,7 @@ function! s:read_atags() abort
     let quot = &sh =~# 'sh' ? "'" : '"'
     let base = join([fnamemodify(expand('$VIMRUNTIME/autoload'), ':p')] + gf#vimfn#core#getuserrtpa(), ',')
     let loaded = s:loaded_rtpas()
-    for path in split(globpath(base, '**/*.vim'), '\n')
+    for path in sort(split(globpath(base, '**/*.vim'), '\n'))
       let path = tr(path, '\', '/')
       if stridx(path, '__latest__') != -1
         continue
@@ -73,7 +73,7 @@ function! s:read_atags() abort
       endif
     endfor
     "echoe join(rtpa, "\n")
-    if len(rtpa)
+    if !empty(rtpa)
       let output = system(printf('ctags -x --languages=vim --vim-kinds=f %s', join(rtpa)))
       for line in split(output, '\v\r\n|\r|\n')
         let afn = split(line)[0]
@@ -86,20 +86,33 @@ function! s:read_atags() abort
   return ret
 endfunction
 
+
+let s:Progres = [
+\   ' *      ',
+\   ' **     ',
+\   ' ***    ',
+\   ' *****  ',
+\   ' ****** '
+\]
 "Note:
 " ctagsが使えるならから行番号をとれば?
 "
 function! ctrlp#vimfn#init()
   if !exists('s:tags')
+    silent! cal ctrlp#progress(s:Progres[0])
     let vitags = s:read_vitags()
+    silent! cal ctrlp#progress(s:Progres[1])
     if !empty(vitags)
       call add(s:Invs, gf#vimfn#core#Investigator('vital_help'))
     endif
+    silent! cal ctrlp#progress(s:Progres[2])
     let atags = s:read_atags()
+    silent! cal ctrlp#progress(s:Progres[3])
     if !empty(atags)
       call add(s:Invs, gf#vimfn#core#Investigator('autoload_rtp'))
       call add(s:Invs, gf#vimfn#core#Investigator('autoload_user_rtpa'))
     endif
+    silent! cal ctrlp#progress(s:Progres[4])
     let s:tags = vitags + atags
   endif
   for line in gf#vimfn#core#redir('function', 1)
