@@ -15,15 +15,8 @@ if !exists('s:id')
 endif
 
 let s:Invs = [gf#vimfn#core#Investigator('exists_function')]
-let s:Tagcmd = 'ctags -x --languages=vim --vim-kinds=f %s'
 let s:LoadedScripts = []
-let s:Progres = [
-\   ' *      ',
-\   ' **     ',
-\   ' ***    ',
-\   ' *****  ',
-\   ' ****** '
-\]
+let s:Tagcmd = 'ctags -x --languages=vim --vim-kinds=f %s'
 
 function! ctrlp#vimfn#id()
   return s:id
@@ -55,35 +48,34 @@ function! s:loaded_rtpas()
   for path in gf#vimfn#core#redir('scriptnames', 1)
     let path = tr(path, '\', '/')
     if stridx(path, '/autoload/') != -1
-      call add(ret, fnamemodify(split(path)[-1], ':p'))
+      call add(ret, expand(split(path)[-1]))
     endif
   endfor
   return ret
 endfunction
 
-function! s:read_atags() abort
+function! s:read_atags()
   let ret = []
   if executable('ctags')
     let rtpa = []
-    let quot = &sh =~# 'sh' ? "'" : '"'
-    let base = join([fnamemodify(expand('$VIMRUNTIME/autoload'), ':p')] + gf#vimfn#core#getuserrtpa(), ',')
+    let base = split(globpath(&rtp, 'autoload'), '\n') + gf#vimfn#core#getuserrtpa()
     let loaded = s:loaded_rtpas()
-    for path in sort(split(globpath(base, '**/*.vim'), '\n'))
-      let path = tr(path, '\', '/')
+    for path in split(globpath(join(base, ','), '**/*.vim'), '\n')
       if stridx(path, '__latest__') != -1
         continue
       endif
+      let path = tr(path, '\', '/')
       if index(loaded, path) == -1
-        call add(rtpa, quot . path . quot)
+        call add(rtpa, path)
       endif
     endfor
-    "echoe join(rtpa, "\n")
     if !empty(rtpa)
-      let output = system(printf(s:Tagcmd, join(rtpa)))
-      for line in split(output, '\v\r\n|\r|\n')
-        let afn = split(line)[0]
-        if stridx(afn, '#') != -1
-          call add(ret, afn)
+      " See: ../gf/vimfn/core.vim
+      let operator = {'name': '', 'type': 1, 'is_cache': 2}
+      for path in rtpa
+        if filereadable(path)
+          call gf#vimfn#core#interrogation(readfile(path), operator, ret)
+          silent! cal ctrlp#progress(len(ret) . ': reading ... ' . path)
         endif
       endfor
     endif
@@ -94,20 +86,16 @@ endfunction
 
 function! s:makeTags()
   if !exists('s:tags')
-    silent! cal ctrlp#progress(s:Progres[0])
     let vitags = s:read_vitags()
-    silent! cal ctrlp#progress(s:Progres[1])
     if !empty(vitags)
       call add(s:Invs, gf#vimfn#core#Investigator('vital_help'))
     endif
-    silent! cal ctrlp#progress(s:Progres[2])
+    silent! cal ctrlp#progress('wait...')
     let atags = s:read_atags()
-    silent! cal ctrlp#progress(s:Progres[3])
     if !empty(atags)
       call add(s:Invs, gf#vimfn#core#Investigator('autoload_rtp'))
       call add(s:Invs, gf#vimfn#core#Investigator('autoload_user_rtpa'))
     endif
-    silent! cal ctrlp#progress(s:Progres[4])
     let s:tags = sort(vitags + atags)
   endif
 endfunction
@@ -141,3 +129,4 @@ function! ctrlp#vimfn#accept(mode, str)
     endif
   endif
 endfunction
+" vim:set et sts=2 ts=2 sw=2 fdm=marker:

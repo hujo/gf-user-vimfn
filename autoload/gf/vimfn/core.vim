@@ -29,13 +29,12 @@ function! gf#vimfn#core#getuserrtpa() "{{{
   let home = expand('~')
   let dotvim = isdirectory(home . '/.vim') ? home . '/.vim' : isdirectory(home . '/vimfiles') ? home . '/vimfiles' : ''
   if dotvim != ''
-    let rtpa = rtpa +  [dotvim . '/autoload']
     let bundle = isdirectory(dotvim . '/bundle') ? dotvim . '/bundle' : ''
     if bundle != ''
       let rtpa = rtpa + split(globpath(bundle, '*/autoload'))
     endif
   endif
-  return map(rtpa, 'fnamemodify(v:val, '':gs?\\?/?'')')
+  return rtpa
 endfunction "}}}
 
 function! gf#vimfn#core#type(fnName) "{{{
@@ -74,10 +73,13 @@ function! gf#vimfn#core#interrogation(lines, d, cache) " {{{
       let col = match(line, regexp) + 1
       if col
         let name = matchlist(line, regexp)[2]
-        if gf#vimfn#core#identification(name, a:d)
+        if is_cache == 2
+          call add(a:cache, name)
+          continue
+        elseif gf#vimfn#core#identification(name, a:d)
           call extend(a:d, {'line': lnum + 1, 'col': col + len(idnt)})
           return 1
-        elseif is_cache
+        elseif is_cache == 1
           call add(a:cache, {'line': lnum + 1, 'col': col + len(idnt), 'name': name})
         endif
       endif
