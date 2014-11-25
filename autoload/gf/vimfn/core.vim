@@ -69,14 +69,11 @@ function! gf#vimfn#core#interrogation(lines, d, cache) " {{{
     let idnt = matchstr(lines[lnum], '\v^\s+')
     let line = strpart(lines[lnum], len(idnt))
 
-    if _lnum is 0 && line[0] !=# '"' 
+    if _lnum is 0 && line[0] !=# '"'
       let col = match(line, regexp) + 1
       if col
         let name = matchlist(line, regexp)[2]
-        if is_cache == 2
-          call add(a:cache, name)
-          continue
-        elseif gf#vimfn#core#identification(name, a:d)
+        if gf#vimfn#core#identification(name, a:d)
           call extend(a:d, {'line': lnum + 1, 'col': col + len(idnt)})
           return 1
         elseif is_cache == 1
