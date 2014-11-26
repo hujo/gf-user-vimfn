@@ -69,8 +69,8 @@ function! s:indexingAutoloadFunc() "{{{
   if !empty(rtpa)
     for path in rtpa
       if filereadable(path)
-        let regexp = '\v\C\s*fu%[nction](\!\s*|\s+)('
-        \ . join(split(split(path, 'autoload')[1], '\v[\/]'), '#')[:-5] . '#[a-z0-9_]+'
+        let regexp = '\v\C[ \t]*fu%[nction](\!\s*|\s+)('
+        \ . join(split(split(path, 'autoload')[1], '\v[\/]'), '#')[:-5] . '#[a-zA-Z0-9_]+'
         \ . ')\s*\([^)]*\)'
         for line in readfile(path)
           if line =~# regexp
