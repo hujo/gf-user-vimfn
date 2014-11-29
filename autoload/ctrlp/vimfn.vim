@@ -24,11 +24,12 @@ if !exists('s:Id')
 endif
 
 function! s:getLoadedScripts() "{{{
-  let ret = []
+  let ret = {}
   for path in gf#vimfn#core#redir('scriptnames', 1)
     let path = tr(path, '\', '/')
     if stridx(path, '/autoload/') != -1
-      call add(ret, fnamemodify(split(path)[-1], ':p:gs?\\?/?'))
+      let path = fnamemodify(split(path)[-1], ':p:gs?\\?/?')
+      let ret[path] = 1
     endif
   endfor
   return ret
@@ -77,21 +78,30 @@ function! s:_indexingAutoloadFunc(pathes) "{{{
       continue
     endif
     let path = fnamemodify(path, ':p:gs?\\?/?')
-    if index(loaded, path) == -1
+    if !has_key(loaded, path)
       call add(rtpa, path)
-      call add(loaded, path)
+      let loaded[path] = 1
     endif
   endfor
 
   if !empty(rtpa)
     for path in rtpa
       if filereadable(path)
-        let regexp = '\v\C[ \t]*fu%[nction](\!\s*|\s+)('
+        let regexp = '\v\Cfu%[nction](\!\s*|\s+)('
         \ . join(split(split(path, 'autoload')[1], '\v[\/]'), '#')[:-5] . '#[a-zA-Z0-9_]+'
         \ . ')\s*\([^)]*\)'
         for line in readfile(path)
-          if line =~# regexp
-            call add(ret, matchlist(line, regexp)[2])
+          let fuidx = stridx(line, 'fu')
+          if fuidx == -1
+            continue
+          endif
+          let idt = strpart(line, 0, fuidx)
+          if idt !=# '' || idt !~# '\v\s*'
+            continue
+          endif
+          if strpart(line, fuidx) =~# regexp
+            let func = matchlist(line, regexp)[2]
+            call add(ret, func)
           endif
         endfor
         silent! call ctrlp#progress(len(ret) . ': indexing ... ' . path)
@@ -157,6 +167,7 @@ function! ctrlp#vimfn#init() "{{{
 endfunction "}}}
 function! ctrlp#vimfn#accept(mode, str) "{{{
   call ctrlp#exit()
+  "echo a:mode
   let d = gf#vimfn#core#find(a:str, s:Invs)
   if has_key(d, 'path') && has_key(d, 'line')
     call ctrlp#acceptfile({'action': a:mode, 'line': d.path, 'tail': d.line})
