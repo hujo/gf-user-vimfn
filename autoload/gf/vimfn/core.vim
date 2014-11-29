@@ -13,10 +13,9 @@ endfunction "}}}
 
 function! gf#vimfn#core#redir(cmd, ...) "{{{
   let [_list, ret, &list] = [&list, '', 0]
+  redir => ret
   try
-    redir => ret
     silent exe a:cmd
-    redir END
   finally
     redir END
     let &list = _list
