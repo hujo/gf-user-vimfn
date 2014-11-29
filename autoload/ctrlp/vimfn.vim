@@ -42,11 +42,11 @@ function! s:_indexingVitalNS() "{{{
     if tr(fnamemodify(ht, ':p:h'), '\', '/') !=# vimrtp
       let hf = readfile(fnamemodify(ht, ':p'))
       for line in hf
-        if line[:5] == 'Vital.'
+        if line[:5] ==# 'Vital.'
           let line = split(line, '\v\s')[0]
-          if line[-2:] == '()' && stridx(line, '-') == -1
+          if line[-2:] ==# '()' && stridx(line, '-') == -1
             let line = line[:-3]
-            silent! call ctrlp#progress(len(ret) . ': indexing ... ' . line)
+            silent! call ctrlp#progress(len(ret) . ': [indexing/vital] ' . line)
             call add(ret, line)
           endif
         endif
@@ -60,7 +60,6 @@ function! s:indexingVitalNS() "{{{
   if exists('s:vitags')
     return
   endif
-  silent! cal ctrlp#progress('indexing Vital NameSpace ...')
   let s:vitags = s:_indexingVitalNS()
   if !empty(s:vitags)
     call sort(s:vitags)
@@ -87,16 +86,16 @@ function! s:_indexingAutoloadFunc(pathes) "{{{
   if !empty(rtpa)
     for path in rtpa
       if filereadable(path)
-        let regexp = '\v\Cfu%[nction](\!\s*|\s+)('
+        let regexp = '\v\C^fu%[nction](\!\s*|\s+)('
         \ . join(split(split(path, 'autoload')[1], '\v[\/]'), '#')[:-5] . '#[a-zA-Z0-9_]+'
-        \ . ')\s*\([^)]*\)'
+        \ . ')'
         for line in readfile(path)
           let fuidx = stridx(line, 'fu')
           if fuidx == -1
             continue
           endif
           let idt = strpart(line, 0, fuidx)
-          if idt !=# '' || idt !~# '\v\s*'
+          if idt !=# '' || idt !~# '\v^[ \t]*$'
             continue
           endif
           if strpart(line, fuidx) =~# regexp
@@ -104,7 +103,7 @@ function! s:_indexingAutoloadFunc(pathes) "{{{
             call add(ret, func)
           endif
         endfor
-        silent! call ctrlp#progress(len(ret) . ': indexing ... ' . path)
+        silent! call ctrlp#progress(len(ret) . ': [indexing/runtime] ' . path)
       endif
     endfor
   endif
@@ -115,7 +114,6 @@ function! s:indexingAutoloadFunc(pathes) "{{{
     return
   endif
   if !empty(a:pathes)
-    silent! cal ctrlp#progress('indexing autoload function...')
     let s:tags = s:_indexingAutoloadFunc(a:pathes)
     if !empty(s:tags)
       let s:tags = sort(s:tags)
