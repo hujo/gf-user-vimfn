@@ -4,6 +4,9 @@ if exists('g:loaded_ctrlp_vimfn') && g:loaded_ctrlp_vimfn
   finish
 endif
 let g:loaded_ctrlp_vimfn = 1
+let s:ctrlp_vimfn_indexings = ['vital', 'runtime', 'bundle']
+let s:indexd_autoload = 0
+let g:ctrlp_vimfn_indexings = get(g:, 'ctrlp_vimfn_indexings', s:ctrlp_vimfn_indexings)
 
 
 let s:Invs = [gf#vimfn#core#Investigator('exists_function')]
@@ -20,26 +23,6 @@ if !exists('s:Id')
   let s:Id = g:ctrlp_builtins + len(g:ctrlp_ext_vars)
 endif
 
-function! s:indexingVitalNS() "{{{
-  let hts = split(globpath(&rtp, 'doc/tags'), '\n')
-  let ret = []
-  let vimrtp = fnamemodify(expand('$VIMRUNTIME/doc'), ':p:h:gs?\\?/?')
-  for ht in hts
-    if tr(fnamemodify(ht, ':p:h'), '\', '/') !=# vimrtp
-      let hf = readfile(fnamemodify(ht, ':p'))
-      for line in hf
-        if line[:5] == 'Vital.'
-          let line = split(line, '\v\s')[0]
-          if line[-2:] == '()' && stridx(line, '-') == -1
-            call add(ret, line[:-3])
-          endif
-        endif
-      endfor
-      break
-    endif
-  endfor
-  return ret
-endfunction "}}}
 function! s:getLoadedScripts() "{{{
   let ret = []
   for path in gf#vimfn#core#redir('scriptnames', 1)
@@ -50,12 +33,46 @@ function! s:getLoadedScripts() "{{{
   endfor
   return ret
 endfunction "}}}
-function! s:indexingAutoloadFunc() "{{{
+function! s:_indexingVitalNS() "{{{
+  let hts = split(globpath(&rtp, 'doc/tags'), '\n')
+  let ret = []
+  let vimrtp = fnamemodify(expand('$VIMRUNTIME/doc'), ':p:h:gs?\\?/?')
+  for ht in hts
+    if tr(fnamemodify(ht, ':p:h'), '\', '/') !=# vimrtp
+      let hf = readfile(fnamemodify(ht, ':p'))
+      for line in hf
+        if line[:5] == 'Vital.'
+          let line = split(line, '\v\s')[0]
+          if line[-2:] == '()' && stridx(line, '-') == -1
+            let line = line[:-3]
+            silent! call ctrlp#progress(len(ret) . ': indexing ... ' . line)
+            call add(ret, line)
+          endif
+        endif
+      endfor
+      break
+    endif
+  endfor
+  return ret
+endfunction "}}}
+function! s:indexingVitalNS() "{{{
+  if exists('s:vitags')
+    return
+  endif
+  silent! cal ctrlp#progress('indexing Vital NameSpace ...')
+  let s:vitags = s:_indexingVitalNS()
+  if !empty(s:vitags)
+    call sort(s:vitags)
+    call add(s:Invs, gf#vimfn#core#Investigator('vital_help'))
+  else
+    let s:vitags = []
+  endif
+endfunction "}}}
+function! s:_indexingAutoloadFunc(pathes) "{{{
   let ret = []
   let rtpa = []
-  let base = split(globpath(&rtp, 'autoload'), '\n') + gf#vimfn#core#getuserrtpa()
   let loaded = s:getLoadedScripts()
-  for path in split(globpath(join(base, ','), '**/*.vim'), '\n')
+  for path in split(globpath(join(a:pathes, ','), '**/*.vim'), '\n')
     if stridx(path, '__latest__') != -1
       continue
     endif
@@ -77,26 +94,43 @@ function! s:indexingAutoloadFunc() "{{{
             call add(ret, matchlist(line, regexp)[2])
           endif
         endfor
-        silent! call ctrlp#progress(len(ret) . ': reading ... ' . path)
+        silent! call ctrlp#progress(len(ret) . ': indexing ... ' . path)
       endif
     endfor
   endif
   return ret
 endfunction "}}}
-function! s:indexing() "{{{
-  if !exists('s:tags')
-    let vitags = s:indexingVitalNS()
-    if !empty(vitags)
-      call add(s:Invs, gf#vimfn#core#Investigator('vital_help'))
-    endif
-    silent! cal ctrlp#progress('wait...')
-    let atags = s:indexingAutoloadFunc()
-    if !empty(atags)
+function! s:indexingAutoloadFunc(pathes) "{{{
+  if s:indexd_autoload == 1
+    return
+  endif
+  if !empty(a:pathes)
+    silent! cal ctrlp#progress('indexing autoload function...')
+    let s:tags = s:_indexingAutoloadFunc(a:pathes)
+    if !empty(s:tags)
+      let s:tags = sort(s:tags)
       call add(s:Invs, gf#vimfn#core#Investigator('autoload_rtp'))
       call add(s:Invs, gf#vimfn#core#Investigator('autoload_user_rtpa'))
     endif
-    let s:tags = sort(vitags + atags)
+    let s:indexd_autoload = 1
+  else
+    let s:tags = []
   endif
+endfunction "}}}
+function! s:indexing() "{{{
+  let indexings = get(g:, 'ctrlp_vimfn_indexings', s:ctrlp_vimfn_indexings)
+  if index(indexings, 'vital') != -1
+    call s:indexingVitalNS()
+  endif
+
+  let pathes = []
+  if index(indexings, 'runtime') != -1
+    let pathes = split(globpath(&rtp, 'autoload'), '\n')
+  endif
+  if index(indexings, 'bundle') != -1
+    let pathes = pathes + gf#vimfn#core#getuserrtpa()
+  endif
+  call s:indexingAutoloadFunc(pathes)
 endfunction "}}}
 
 function! ctrlp#vimfn#id() "{{{
@@ -105,17 +139,21 @@ endfunction "}}}
 function! ctrlp#vimfn#init() "{{{
   call s:indexing()
   let loaded = gf#vimfn#core#redir('scriptnames', 1)
-  if len(s:LoadedScripts) == len(loaded)
+  if len(s:LoadedScripts) != len(loaded)
+    for line in gf#vimfn#core#redir('function', 1)
+      let line = strpart(strpart(line, 0, stridx(line, '(')), 9)
+      if index(s:tags, line) == -1
+        call add(s:tags, line)
+      endif
+    endfor
+    let s:tags = sort(s:tags)
+    let s:LoadedScripts = loaded
+  endif
+  if exists('s:vitags')
+    return s:vitags + s:tags
+  else
     return s:tags
   endif
-  for line in gf#vimfn#core#redir('function', 1)
-    let line = strpart(strpart(line, 0, stridx(line, '(')), 9)
-    if index(s:tags, line) == -1
-      call add(s:tags, line)
-    endif
-  endfor
-  let s:LoadedScripts = loaded
-  return sort(s:tags)
 endfunction "}}}
 function! ctrlp#vimfn#accept(mode, str) "{{{
   call ctrlp#exit()
