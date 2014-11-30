@@ -11,7 +11,6 @@ let g:ctrlp_vimfn_indexings = get(g:, 'ctrlp_vimfn_indexings', s:ctrlp_vimfn_ind
 
 let s:Invs = [gf#vimfn#core#Investigator('exists_function')]
 let s:LoadedScripts = []
-let s:Tagcmd = 'ctags -x --languages=vim --vim-kinds=f %s'
 if !exists('s:Id')
   cal add(g:ctrlp_ext_vars, {
   \ 'init': 'ctrlp#vimfn#init()',
@@ -28,7 +27,7 @@ function! s:getLoadedScripts() "{{{
   for path in gf#vimfn#core#redir('scriptnames', 1)
     let path = tr(path, '\', '/')
     if stridx(path, '/autoload/') != -1
-      let path = fnamemodify(split(path)[-1], ':p:gs?\\?/?')
+      let path = fnamemodify(split(path, '\v\d+:\s')[-1], ':p:gs?\\?/?')
       let ret[path] = 1
     endif
   endfor
