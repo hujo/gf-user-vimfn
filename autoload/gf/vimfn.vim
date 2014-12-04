@@ -39,10 +39,13 @@ function! s:isJumpOK(d) " :int {{{
 endfunction "}}}
 "}}}
 " pick word functions {{{
-function! s:pickCursor() " :string {{{
+function! s:pickCursor() "{{{
   " NOTE: concealがあるため、filetypeがHELPの時は<cfile>を使ってみる
   if &l:ft == 'help' | return expand('<cfile>') | endif
-  let pat = '\v\C[a-zA-Z0-9#._:<>]'
+  return s:_pickCursor('\v\C[a-zA-Z0-9#._:<>]')
+endfunction "}}}
+function! s:_pickCursor(pat) "{{{
+  let pat = a:pat
   let [line, col] = [getline(line('.')), col('.') - 1]
   let ret = matchstr(line, pat . '*', col)
   if ret != ''
@@ -53,9 +56,14 @@ function! s:pickCursor() " :string {{{
   endif
   return ret
 endfunction "}}}
-
-function! s:pickFname(str) " :string {{{
-  return matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:.]+')
+function! s:pickFname(str) "{{{
+  let name = matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:.]+')
+  return name =~# '\v^\d+$' ? '' : name
+endfunction "}}}
+function! s:pickNumericFunc() "{{{
+  let str = s:_pickCursor('\v\C[function''()0-9]')
+  return match(str, '\v\C^function\(''\d+''\)$') != -1 ?
+  \ matchstr(str, '\v\d+') : ''
 endfunction "}}}
 "}}}
 
@@ -122,10 +130,15 @@ function! gf#vimfn#sid(...) "{{{
 endfunction "}}}
 function! gf#vimfn#find(...) "{{{
   if s:isEnable()
-    let kwrd = a:0 > 0 ?
-    \  a:1 is 0 ? s:pickCursor() : a:1 :
-    \  s:pickCursor()
-    let ret = gf#vimfn#core#find(s:pickFname(kwrd), s:Investigators)
+    if a:0 > 0 && a:1 is 0
+      let kwrd = s:pickFname(a:1)
+    else
+      let kwrd = s:pickNumericFunc()
+      if kwrd == ''
+        let kwrd = s:pickFname(s:pickCursor())
+      endif
+    endif
+    let ret = gf#vimfn#core#find(kwrd, s:Investigators)
     return s:isJumpOK(empty(ret) ? 0 : ret) ? ret : 0
   endif
 endfunction "}}}

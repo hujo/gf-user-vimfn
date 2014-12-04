@@ -4,7 +4,9 @@ let s:save_cpo = &cpo
 set cpo&vim
 "}}}
 
-let s:FUNCTYPE = { 'AUTOLOAD': 1, 'GLOBAL': 2, 'LOCAL': 3, 'SCRIPT': 4, 'SNR': 5, 'G_DICT': 6, 'DICT': 0 }
+let s:FUNCTYPE = {
+\ 'AUTOLOAD': 1, 'GLOBAL': 2, 'LOCAL': 3, 'SCRIPT': 4,
+\ 'SNR': 5, 'G_DICT': 6, 'NUM': 7, 'DICT': 0  }
 
 function! gf#vimfn#core#FUNCTYPE() "{{{
   " NOTE: lockvar ?
@@ -39,7 +41,8 @@ endfunction "}}}
 function! gf#vimfn#core#type(fnName) "{{{
   let [name, prefix, _] = [a:fnName, a:fnName[:1], s:FUNCTYPE]
 
-  if name =~ '\v^\C[a-z1-9]*$'                   | return 0
+  if name =~ '\v\d+$'                            | return _.NUM
+  elseif name =~ '\v^\C[a-z1-9]*$'               | return 0
   elseif prefix ==# 'g:'
     if name =~ '\v\.'                            | return _.G_DICT
     elseif name[2] =~ '\v\C[A-Z]'                | return _.GLOBAL
@@ -245,7 +248,6 @@ function! gf#vimfn#core#Investigator(name) "{{{
   return call('s:Investigator_' . a:name, [])
 endfunction "}}}
 function! gf#vimfn#core#find(fnName, gators, ...) " {{{
-  "Note: a:1 == 1 is debag
   let fs = {}
   let cache = []
   let d = {'name': a:fnName, 'type': gf#vimfn#core#type(a:fnName), 'tasks': []}
