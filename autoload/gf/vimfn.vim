@@ -10,6 +10,7 @@ let s:DEFAULT_OPTS = {
 \  'gf_vimfn_enable_filetypes': ['vim', 'vimspec', 'help'],
 \  'gf_vimfn_open_action': 'tab drop',
 \  'gf_vimfn_jump_gun': 0,
+\  'gf_vimfn_enable_syn': 1
 \}
 
 " Option functions {{{
@@ -23,6 +24,10 @@ function! s:getOpt(optname) " :? {{{
   return type(opt) is type(default) ? opt : default
 endfunction "}}}
 function! s:isEnable() " :int {{{
+  if s:getOpt('enable_syn') &&
+  \   synIDattr(synID(line('.'), col('.'), 0), 'name') =~# '\v\C^vim'
+    return 1
+  endif
   return index(s:getOpt('enable_filetypes'), &ft) isnot -1
 endfunction "}}}
 function! s:isJumpOK(d) " :int {{{

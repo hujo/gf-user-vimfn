@@ -128,6 +128,22 @@ g:gf_vimfn_enable_filetypes                       *g:gf_vimfn_enable_filetypes*
     "default ['vim', 'vimspec', 'help']
 
 <
+
+g:gf_vimfn_enable_syn                                  *g:gf_vimfn_enable_syn*
+
+    カーソル位置のシンタックスの名前がvimで始まっている場合に
+    |g:gf_vimfn_enable_filetypes|を考慮しません。
+
+    ファイルタイプが`vim`でないバッファで`vim`のシンタックスが設定されているような
+    特殊なバッファの場合のためです。
+    この機能を無効化したい場合はこの変数に`0`を設定してください。
+
+>
+    "default 1
+    "disable
+    let g:gf_vimfn_enable_syn = 0
+<
+
 g:gf_vimfn_open_action                                 *g:gf_vimfn_open_action*
 
     |gf#vimfn#open()|でのファイルの開き方を文字列で指定します。
@@ -170,7 +186,14 @@ gf#vimfn#open                                     *gf-user-vimfn-examples-open*
     \       empty(<q-args>) ? 0 : <q-args>)
 <
 ==============================================================================
-TODO~
+更新履歴                                                  *gf-vimfn-changelog*
+
+2014-12-04
+  - function('1')に対応。
+  - それに伴い|g:gf_vimfn_enable_syn|を追加。
+
+==============================================================================
+TODO
 
 1. 2014-08-15 {{{
   + 関数が存在しない場合の挙動を設定できる様にする
@@ -187,6 +210,9 @@ TODO~
   関数が組み込み関数だった場合にヘルプを開くように設定出来る様にする。
   - 諦めた
 }}}
+
+4. 2014-12-04
+  テストを書く。
 
 ==============================================================================
 vim:tw=78:fo=tcq2mM:ts=8:ft=help:norl:fdm=marker
