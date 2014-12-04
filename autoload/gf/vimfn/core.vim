@@ -77,6 +77,7 @@ function! gf#vimfn#core#interrogation(lines, d, cache) " {{{
           return 1
         elseif is_cache == 1
           call add(a:cache, {'line': lnum + 1, 'col': col + len(idnt), 'name': name})
+          "echoe PP(a:cache)
         endif
       endif
     else
@@ -140,7 +141,10 @@ function! s:Investigator_exists_function() "{{{
   function! gator.tasks(d)
     let _name = a:d.type is s:FUNCTYPE.SCRIPT ?
     \ self._toSNR(a:d.name) : self._isRef(a:d.name) ? split(string(eval(a:d.name)), "'")[1] : a:d.name
-    if _name !~ '\v^\d+$' && exists('*' . _name)
+    if _name =~ '\v^\d+$'
+      let _name = '{' . _name . '}'
+    endif
+    if exists('*' . _name)
       let _lines =
       \   map(gf#vimfn#core#redir('1verbose function ' . _name, 1), 'substitute(v:val, ''\v^(\d+)?\s+'', '''', '''')')
       let _path = matchstr(remove(_lines, 1), '\v\f+$')
@@ -267,8 +271,9 @@ function! gf#vimfn#core#find(fnName, gators, ...) " {{{
     endif
     if gf#vimfn#core#interrogation(fs[task.path], task, cache) | return task | endif
   endfor
-
-  return len(cache) is 1 ? cache[0] : has_key(d, 'path') ? {'path': d.path, 'line': 0, 'col': 0} : a:0 && a:1 ? d : {}
+  return len(cache) is 1 ?
+  \  extend(cache[0], {'path': expand(d.path)}) :
+  \  has_key(d, 'path') ? {'path': expand(d.path), 'line': 0, 'col': 0} : a:0 && a:1 ? d : {}
 endfunction "}}}
 
 " Restore CPO {{{
