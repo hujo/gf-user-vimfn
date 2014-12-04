@@ -62,8 +62,7 @@ function! s:pickFname(str) "{{{
 endfunction "}}}
 function! s:pickNumericFunc() "{{{
   let str = s:_pickCursor('\v\C[function''()0-9]')
-  return match(str, '\v\C^function\(''\d+''\)$') != -1 ?
-  \ matchstr(str, '\v\d+') : ''
+  return matchstr(str, '\v\Cfunction\(''\zs\d+\ze''\)')
 endfunction "}}}
 "}}}
 
@@ -139,6 +138,7 @@ function! gf#vimfn#find(...) "{{{
       endif
     endif
     let ret = gf#vimfn#core#find(kwrd, s:Investigators)
+    "echoe PP(l:)
     return s:isJumpOK(empty(ret) ? 0 : ret) ? ret : 0
   endif
 endfunction "}}}
