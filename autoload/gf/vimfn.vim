@@ -127,6 +127,19 @@ call add(s:Investigators, s:Investigator_autoload_current())
 call add(s:Investigators, gf#vimfn#core#Investigator('vital_help'))
 call add(s:Investigators, s:Investigator_current_file())
 
+function! s:find(...) "{{{
+  if a:0 > 0 && a:1 isnot 0
+    let kwrd = a:1
+  else
+    let kwrd = s:pickNumericFunc()
+    if kwrd == ''
+      let kwrd = s:pickFname(s:pickCursor())
+    endif
+  endif
+  let ret = gf#vimfn#core#find(kwrd, s:Investigators)
+  "echoe PP(l:)
+  return s:isJumpOK(empty(ret) ? 0 : ret) ? ret : 0
+endfunction "}}}
 
 " Autoload Functions {{{
 function! gf#vimfn#sid(...) "{{{
@@ -134,21 +147,11 @@ function! gf#vimfn#sid(...) "{{{
 endfunction "}}}
 function! gf#vimfn#find(...) "{{{
   if s:isEnable()
-    if a:0 > 0 && a:1 is 0
-      let kwrd = s:pickFname(a:1)
-    else
-      let kwrd = s:pickNumericFunc()
-      if kwrd == ''
-        let kwrd = s:pickFname(s:pickCursor())
-      endif
-    endif
-    let ret = gf#vimfn#core#find(kwrd, s:Investigators)
-    "echoe PP(l:)
-    return s:isJumpOK(empty(ret) ? 0 : ret) ? ret : 0
+    return call('s:find', a:000)
   endif
 endfunction "}}}
 function! gf#vimfn#open(...) "{{{
-  let d = call('gf#vimfn#find', a:000)
+  let d = call('s:find', a:000)
   if type(d) is type({})
     exe s:getOpt('open_action') d.path
     call cursor(d.line, d.col)
