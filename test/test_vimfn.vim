@@ -4,6 +4,7 @@ let s:save_cpo = &cpo
 set cpo&vim
 
 " Util {{{
+"Todo: -> .themisrc
 function! s:func(name)
   return function(gf#vimfn#sid(a:name))
 endfunction
@@ -74,8 +75,9 @@ endfunction "}}}
 
 function! s:suite.__PICK__() "{{{
   let pick = themis#suite("gf/vimfn.vim")
-  function! pick.pick() "{{{
+  function! pick.pickCursor_pickFname() "{{{
     function! s:test.pick(...) "{{{
+      let tfile = s:FILE
       let C = s:func('pickCursor')
       let F = s:func('pickFname')
       let tests = [
@@ -85,7 +87,7 @@ function! s:suite.__PICK__() "{{{
       \  '18': '', '20': 'vimproc#system', '34': '',},
       \]
       let lnum = s:_pick_lnum
-      exe 'e' s:FILE
+      exe 'e' tfile
       for test in tests
         let lnum += 1
         for col in map(keys(test), 'str2nr(v:val)')
@@ -101,7 +103,9 @@ function! s:suite.__PICK__() "{{{
       bdelete %
     endfunction "}}}
     call s:option('pick')
+    "Todo: function! pick.pickNumericFunc()
   endfunction "}}}
+
 endfunction "}}}
 
 function! s:suite.__CORE__() "{{{
@@ -116,6 +120,7 @@ function! s:suite.__CORE__() "{{{
     call s:option('type')
   endfunction "}}}
   function! core.identification() "{{{
+    "Todo: [type = NUM]
     function! s:test.identification(...)
       let _ = gf#vimfn#core#FUNCTYPE()
       for d in [

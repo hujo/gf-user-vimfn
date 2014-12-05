@@ -68,6 +68,7 @@ function! s:indexingVitalNS() "{{{
   endif
 endfunction "}}}
 function! s:_indexingAutoloadFunc(pathes) "{{{
+  "Todo: if_lua
   let ret = []
   let rtpa = []
   let loaded = s:getLoadedScripts()

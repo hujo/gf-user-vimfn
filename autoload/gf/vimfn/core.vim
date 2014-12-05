@@ -143,19 +143,20 @@ function! s:Investigator_exists_function() "{{{
 
   function! gator.tasks(d)
     let _name = a:d.type is s:FUNCTYPE.SCRIPT ?
-    \ self._toSNR(a:d.name) : self._isRef(a:d.name) ? split(string(eval(a:d.name)), "'")[1] : a:d.name
+    \ self._toSNR(a:d.name) :
+    \ self._isRef(a:d.name) ? split(string(eval(a:d.name)), "'")[1] : a:d.name
+    let task = { 'name': _name, 'type': gf#vimfn#core#type(_name) }
     if _name =~ '\v^\d+$'
       let _name = '{' . _name . '}'
     endif
     if exists('*' . _name)
       let _lines =
       \   map(gf#vimfn#core#redir('1verbose function ' . _name, 1), 'substitute(v:val, ''\v^(\d+)?\s+'', '''', '''')')
-      let _path = matchstr(remove(_lines, 1), '\v\f+$')
+      let task.path = matchstr(remove(_lines, 1), '\v\f+$')
       "pathは確定
-      let a:d.path = _path
+      let a:d.path = task.path
       "NOTE: is_cache キャッシュをするかどうかの基準を決める？
-      return [{'name': _name, 'type': gf#vimfn#core#type(_name), 'path': _path, 'lines': _lines, 'is_cache': len(_lines) > 2},
-      \       {'name': _name, 'type': gf#vimfn#core#type(_name), 'path': _path}]
+      return [extend({'lines': _lines, 'is_cache': len(_lines) > 2}, task), task]
     endif
   endfunction
 
