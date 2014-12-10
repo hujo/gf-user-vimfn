@@ -63,8 +63,13 @@ function! s:_pickCursor(pat) "{{{
   return ret =~# '\v^\d+$' ? '..' . ret . '..' : ret
 endfunction "}}}
 function! s:pickCursor() "{{{
-  " NOTE: concealがあるため、filetypeがHELPの時は<cfile>を使ってみる
-  if &l:ft == 'help' | return expand('<cfile>') | endif
+  if &l:ft == 'help'
+    "conceal
+    if index(['helpStar', 'helpBar'],
+    \ synIDattr(synID(line('.'), col('.'), 0), 'name')) != -1
+      return expand('<cfile>')
+    endif
+  endif
   return s:_pickCursor('\v[a-zA-Z0-9#._:<>]')
 endfunction "}}}
 function! s:pickFname(str) "{{{
