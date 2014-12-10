@@ -9,7 +9,7 @@ let s:indexd_autoload = 0
 let g:ctrlp_vimfn_indexings = get(g:, 'ctrlp_vimfn_indexings', s:ctrlp_vimfn_indexings)
 
 
-let s:Invs = [gf#vimfn#core#Investigator('exists_function')]
+let s:Invs = [vimfn#Investigator('exists_function')]
 let s:LoadedScripts = []
 if !exists('s:Id')
   cal add(g:ctrlp_ext_vars, {
@@ -24,7 +24,7 @@ endif
 
 function! s:getLoadedScripts() "{{{
   let ret = {}
-  for path in gf#vimfn#core#redir('scriptnames', 1)
+  for path in vimfn#redir('scriptnames', 1)
     let path = tr(path, '\', '/')
     if stridx(path, '/autoload/') != -1
       let path = fnamemodify(split(path, '\v\d+:\s')[-1], ':p:gs?\\?/?')
@@ -62,7 +62,7 @@ function! s:indexingVitalNS() "{{{
   let s:vitags = s:_indexingVitalNS()
   if !empty(s:vitags)
     call sort(s:vitags)
-    call add(s:Invs, gf#vimfn#core#Investigator('vital_help'))
+    call add(s:Invs, vimfn#Investigator('vital_help'))
   else
     let s:vitags = []
   endif
@@ -117,8 +117,8 @@ function! s:indexingAutoloadFunc(pathes) "{{{
     let s:tags = s:_indexingAutoloadFunc(a:pathes)
     if !empty(s:tags)
       let s:tags = sort(s:tags)
-      call add(s:Invs, gf#vimfn#core#Investigator('autoload_rtp'))
-      call add(s:Invs, gf#vimfn#core#Investigator('autoload_user_rtpa'))
+      call add(s:Invs, vimfn#Investigator('autoload_rtp'))
+      call add(s:Invs, vimfn#Investigator('autoload_user_rtpa'))
     endif
     let s:indexd_autoload = 1
   else
@@ -136,7 +136,7 @@ function! s:indexing() "{{{
     let pathes = split(globpath(&rtp, 'autoload'), '\n')
   endif
   if index(indexings, 'bundle') != -1
-    let pathes = pathes + gf#vimfn#core#getuserrtpa()
+    let pathes = pathes + vimfn#getuserrtpa()
   endif
   call s:indexingAutoloadFunc(pathes)
 endfunction "}}}
@@ -146,9 +146,9 @@ function! ctrlp#vimfn#id() "{{{
 endfunction "}}}
 function! ctrlp#vimfn#init() "{{{
   call s:indexing()
-  let loaded = gf#vimfn#core#redir('scriptnames', 1)
+  let loaded = vimfn#redir('scriptnames', 1)
   if len(s:LoadedScripts) != len(loaded)
-    for line in gf#vimfn#core#redir('function', 1)
+    for line in vimfn#redir('function', 1)
       let line = strpart(strpart(line, 0, stridx(line, '(')), 9)
       if index(s:tags, line) == -1
         call add(s:tags, line)
@@ -166,7 +166,7 @@ endfunction "}}}
 function! ctrlp#vimfn#accept(mode, str) "{{{
   call ctrlp#exit()
   "echo a:mode
-  let d = gf#vimfn#core#find(a:str, s:Invs)
+  let d = vimfn#find(a:str, s:Invs)
   if has_key(d, 'path') && has_key(d, 'line')
     call ctrlp#acceptfile({'action': a:mode, 'line': d.path, 'tail': d.line})
     if has_key(d, 'col') && d.col != 0

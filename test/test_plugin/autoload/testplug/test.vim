@@ -56,6 +56,11 @@ function! s:test_7() "{{{
   endfunction
 endfunction "}}}
 
+let g:TestPlugin = {}
+function! TestPlugin.fn() "{{{
+  let description = "Global dictionary function"
+endfunction "}}}
+
 function! testplug#test#load() "{{{
 endfunction "}}}
 

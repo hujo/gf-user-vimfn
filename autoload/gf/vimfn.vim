@@ -4,7 +4,7 @@ let s:save_cpo = &cpo
 set cpo&vim
 "}}}
 
-let s:FUNCTYPE = gf#vimfn#core#FUNCTYPE()
+let s:FUNCTYPE = vimfn#FUNCTYPE()
 
 let s:DEFAULT_OPTS = {
 \  'gf_vimfn_enable_filetypes': ['vim', 'vimspec', 'help'],
@@ -23,7 +23,7 @@ function! s:getOpt(optname) " :? {{{
   let opt = g:[optname]
   return type(opt) is type(default) ? opt : default
 endfunction "}}}
-function! s:isEnable() " :int {{{
+function! s:isEnable() "{{{
   if s:getOpt('enable_syn') &&
   \   synIDattr(synID(line('.'), col('.'), 0), 'name') =~# '\v\C^vim'
     return 1
@@ -44,11 +44,6 @@ function! s:isJumpOK(d) " :int {{{
 endfunction "}}}
 "}}}
 " pick word functions {{{
-function! s:pickCursor() "{{{
-  " NOTE: concealがあるため、filetypeがHELPの時は<cfile>を使ってみる
-  if &l:ft == 'help' | return expand('<cfile>') | endif
-  return s:_pickCursor('\v\C[a-zA-Z0-9#._:<>]')
-endfunction "}}}
 function! s:_pickCursor(pat) "{{{
   let pat = a:pat
   let [line, col] = [getline(line('.')), col('.') - 1]
@@ -60,6 +55,11 @@ function! s:_pickCursor(pat) "{{{
     endwhile
   endif
   return ret
+endfunction "}}}
+function! s:pickCursor() "{{{
+  " NOTE: concealがあるため、filetypeがHELPの時は<cfile>を使ってみる
+  if &l:ft == 'help' | return expand('<cfile>') | endif
+  return s:_pickCursor('\v\C[a-zA-Z0-9#._:<>]')
 endfunction "}}}
 function! s:pickFname(str) "{{{
   let name = matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:.]+')
@@ -83,7 +83,7 @@ function! s:Investigator_autoload_current() "{{{
   let gator = extend({
   \ 'name': 'autoload_current',
   \ 'description': 'find on the assumption that a runtime path the path where the current file',
-  \}, gf#vimfn#core#Investigator('autoload_base'))
+  \}, vimfn#Investigator('autoload_base'))
 
   function! gator._plugdir()
     let [ret, dirs] = [[], split(expand('%:p:h'), '\v[\/]')]
@@ -120,11 +120,11 @@ function! s:Investigator_current_file() "{{{
 endfunction "}}}
 
 let s:Investigators = []
-call add(s:Investigators, gf#vimfn#core#Investigator('exists_function'))
-call add(s:Investigators, gf#vimfn#core#Investigator('autoload_rtp'))
-call add(s:Investigators, gf#vimfn#core#Investigator('autoload_lazy'))
+call add(s:Investigators, vimfn#Investigator('exists_function'))
+call add(s:Investigators, vimfn#Investigator('autoload_rtp'))
+call add(s:Investigators, vimfn#Investigator('autoload_lazy'))
 call add(s:Investigators, s:Investigator_autoload_current())
-call add(s:Investigators, gf#vimfn#core#Investigator('vital_help'))
+call add(s:Investigators, vimfn#Investigator('vital_help'))
 call add(s:Investigators, s:Investigator_current_file())
 
 function! s:find(...) "{{{
@@ -136,7 +136,7 @@ function! s:find(...) "{{{
       let kwrd = s:pickFname(s:pickCursor())
     endif
   endif
-  let ret = gf#vimfn#core#find(kwrd, s:Investigators)
+  let ret = vimfn#find(kwrd, s:Investigators)
   "echoe PP(l:)
   return s:isJumpOK(empty(ret) ? 0 : ret) ? ret : 0
 endfunction "}}}
@@ -152,7 +152,7 @@ function! gf#vimfn#find(...) "{{{
 endfunction "}}}
 function! gf#vimfn#open(...) "{{{
   let d = call('s:find', a:000)
-  if type(d) is type({})
+  if d isnot 0
     exe s:getOpt('open_action') d.path
     call cursor(d.line, d.col)
   endif
