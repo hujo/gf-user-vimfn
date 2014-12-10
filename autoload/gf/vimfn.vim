@@ -46,24 +46,39 @@ endfunction "}}}
 " pick word functions {{{
 function! s:_pickCursor(pat) "{{{
   let pat = a:pat
-  let [line, col] = [getline(line('.')), col('.') - 1]
-  let ret = matchstr(line, pat . '*', col)
-  if ret != ''
-    while col && (match(line[col], pat) + 1)
-      let col -= 1
-      let ret = line[col] . ret
+  let [line, col, cha, ret] = [getline(line('.')), col('.') - 1, '', '']
+  while line[col] =~# pat
+    let ret = line[col] . ret
+    let col -= 1
+  endwhile
+  let ret = get(split(ret, '\v\.\.'), -1, '')
+  if ret !=# ''
+    let col = col('.')
+    while line[col] =~# pat
+      let ret .= line[col]
+      let col += 1
     endwhile
+    let ret = get(split(ret, '\v\.\.'), 0, '')
   endif
-  return ret
+  return ret =~# '\v^\d+$' ? '..' . ret . '..' : ret
 endfunction "}}}
 function! s:pickCursor() "{{{
   " NOTE: concealがあるため、filetypeがHELPの時は<cfile>を使ってみる
   if &l:ft == 'help' | return expand('<cfile>') | endif
-  return s:_pickCursor('\v\C[a-zA-Z0-9#._:<>]')
+  return s:_pickCursor('\v[a-zA-Z0-9#._:<>]')
 endfunction "}}}
 function! s:pickFname(str) "{{{
   let name = matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:.]+')
-  return name =~# '\v^\d+$' ? '' : name
+  if name =~# '\v^\d+$'
+    let name = ''
+  elseif name =~# '\v^\.+\d+(\.+|:)$'
+    "E: func..123..func:  func..func..123:
+    let name = matchstr(name, '\v\d+')
+  elseif name[-1:] ==# ':'
+    "E: fnc..func:
+    let name = name[:-2]
+  endif
+  return name
 endfunction "}}}
 function! s:pickNumericFunc() "{{{
   let str = s:_pickCursor('\v\C[function''()0-9]')
