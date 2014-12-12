@@ -51,10 +51,14 @@ function! s:_pickCursor(pat, ...) "{{{
     let line = join(split(line, '\v\.\.', 1), '  ')
   endif
   let col = col('.') - 1
-  while line[col] =~# pat
-    let ret = line[col] . ret
-    let col -= 1
-  endwhile
+  if line[col] ==# ':'
+    let ret = line[col - 1] =~# '\vg|l|s' ? (line[col - 1] . ':') : ''
+  else
+    while line[col] =~# pat
+      let ret = line[col] . ret
+      let col -= 1
+    endwhile
+  endif
   if ret !=# ''
     let col = col('.')
     while line[col] =~# pat
@@ -76,6 +80,9 @@ function! s:pickCursor() "{{{
 endfunction "}}}
 function! s:pickFname(str) "{{{
   let name = matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:.]+')
+  while name[-1 :] =~# '\v[:.]'
+    let name = name[: -2]
+  endwhile
   return name =~# '\v^\d+$' ? '' : name
 endfunction "}}}
 function! s:_pickNumFuncPP() "{{{
@@ -85,7 +92,7 @@ function! s:_pickNumFuncPP() "{{{
   let regl = '\v\C^function\(''\d+''\)'
 
   if match(line, regl, col) != -1
-    return matchstr(line, regl, col)
+    return matchstr(line, '\v\C^function\(''\zs\d+\ze''\)', col)
   endif
 
   while col isnot 0 && match(line, regl, col) is -1
@@ -100,9 +107,9 @@ function! s:pickNumericFunc() "{{{
   let str = s:_pickNumFuncPP()
   if str !=# '' | return str | endif
 
-  if getline('.')[col('.') - 1] !~# '\v[.:]'
-    let str = s:_pickCursor('\v[1-9.:]', 1)
-    let str = matchstr(str, '\v^\.\.\zs\d+\ze(\.\.|[:])$')
+  if getline('.')[col('.') - 1] !~# '\v[.:,]'
+    let str = s:_pickCursor('\v[1-9.:,]', 1)
+    let str = matchstr(str, '\v^\.\.\zs\d+\ze(\.\.|[:,])$')
     if str !=# '' | return str | endif
   endif
 

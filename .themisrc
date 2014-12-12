@@ -1,4 +1,5 @@
 set noswapfile nobackup
+"set fileencodings=utf-8,cp932,euc-jp,default,latin
 function! T2T(F, ...) "To test two times by changing the option
   set ic re=1 magic
   call call(a:F, a:000)
