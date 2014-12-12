@@ -156,7 +156,7 @@ function! s:Investigator_exists_function() "{{{
       "pathは確定
       let a:d.path = task.path
       "NOTE: is_cache キャッシュをするかどうかの基準を決める？
-      return [extend({'lines': _lines, 'is_cache': len(_lines) > 2}, task), task]
+      return [extend({'lines': _lines, 'is_cache': len(_lines) > 0}, task), task]
     endif
   endfunction
 
