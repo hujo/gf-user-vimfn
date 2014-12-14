@@ -175,7 +175,7 @@ call add(s:Investigators, s:Investigator_current_file())
 
 function! s:find(...) "{{{
   if a:0 > 0 && a:1 isnot 0
-    let kwrd = a:1
+    let kwrd = a:1 =~# '\v^\d+$' ? a:1 : s:pickFname(a:1)
   else
     let kwrd = s:pickNumericFunc()
     if kwrd == ''

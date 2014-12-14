@@ -5,11 +5,56 @@
 
 ### Usage
 
+#### CtrlP
+If if you want to use as an extension of the CtrlP
+
 ``` vim
-" ctrlp
 " Add 'vimfn' to g:ctrlp_extensions
 " Example:
 let g:ctrlp_extensions = ['filer', 'tag', 'buffertag', 'vimfn']
+
+" Example: define a command
+command! CtrlPVimfn call ctrlp#init(ctrlp#vimfn#id())
+```
+
+#### vim-gf-user
+vim-gf-user is a plug-in that extends the gf without breaking the original function of vim.  
+If you are using the vim-gf-user, gf-user-vimfn offers its extension.
+
+Conditions to operate
+- filetype is vim, or in the case of help
+- syntax of the cursor position begins with vim (filetype is not considered in this case)
+
+#### used alone
+Provide functions just one
+
+``` vim
+call gf#vimfn#open()
+call gf#vimfn#open('function name')
+```
+
+``` vim
+Example:
+call gf#vimfn#open('syntaxcomplete#Complete')
+
+" It works if the function is loaded
+call gf#vimfn#open('GetVimIndent')
+call gf#vimfn#open('g:SyntasticRegistry.Instance')
+call gf#vimfn#open('1')
+```
+
+``` vim
+" Setting
+" set the how to open the file
+" default 'tab drop'
+let g:gf_vimfn_open_action = 'split'
+
+" Example
+" mapping
+nnoremap g1 :<c-u>call gf#vimfn#open()<cr>
+
+" command
+command! -nargs=? -complete=function JumpVimFunc call gf#vimfn#open(<q-args>)
 ```
 
 For more information, please refer to the ctrlpvim of documents or vim-gf-user of the document,
