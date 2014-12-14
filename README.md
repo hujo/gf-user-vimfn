@@ -6,7 +6,7 @@
 ### Usage
 
 #### CtrlP
-If if you want to use as an extension of the CtrlP
+If want to use as an extension of the CtrlP
 
 ``` vim
 " Example: Add 'vimfn' to g:ctrlp_extensions
@@ -21,8 +21,8 @@ vim-gf-user is a plug-in that extends the gf without breaking the original funct
 If you are using the vim-gf-user, gf-user-vimfn offers its extension.
 
 Conditions to operate
-- filetype is vim, or in the case of help
-- syntax of the cursor position begins with vim (filetype is not considered in this case)
+- filetype is vim or help
+- syntaxname of the cursor position begins with vim (filetype is not considered in this case)
 
 #### used alone
 Provide functions just one
