@@ -9,8 +9,7 @@
 If if you want to use as an extension of the CtrlP
 
 ``` vim
-" Add 'vimfn' to g:ctrlp_extensions
-" Example:
+" Example: Add 'vimfn' to g:ctrlp_extensions
 let g:ctrlp_extensions = ['filer', 'tag', 'buffertag', 'vimfn']
 
 " Example: define a command
@@ -44,16 +43,14 @@ call gf#vimfn#open('1')
 ```
 
 ``` vim
-" Setting
-" set the how to open the file
-" default 'tab drop'
+" Setting: set the how to open the file
+"   default 'tab drop'
 let g:gf_vimfn_open_action = 'split'
 
-" Example
-" mapping
+" Example: define a mapping
 nnoremap g1 :<c-u>call gf#vimfn#open()<cr>
 
-" command
+" Example: define a command
 command! -nargs=? -complete=function JumpVimFunc call gf#vimfn#open(<q-args>)
 ```
 
