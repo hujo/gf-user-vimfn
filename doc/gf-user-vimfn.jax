@@ -206,6 +206,10 @@ gf#vimfn#open                                     *gf-user-vimfn-examples-open*
 ==============================================================================
 更新履歴                                                  *gf-vimfn-changelog*
 
+2014-12-14
+  - ctrlp-vimfnからvitalのモジュールをリストする機能を削除
+  - autoload/ctrlp/vimfn.vim をリファクタ
+
 2014-12-10
   - autoload/gf/vimfn/core.vim を autoload/vimfn.vim に移動
 
