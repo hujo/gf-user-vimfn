@@ -4,16 +4,11 @@ let s:save_cpo = &cpo
 set cpo&vim
 "}}}
 
-let s:FUNCTYPE = {
-\ 'AUTOLOAD': 1, 'GLOBAL': 2, 'LOCAL': 3, 'SCRIPT': 4,
-\ 'SNR': 5, 'G_DICT': 6, 'NUM': 7, 'DICT': 0  }
-
-function! vimfn#FUNCTYPE() "{{{
-  " NOTE: lockvar ?
-  return deepcopy(s:FUNCTYPE)
+function! s:SID(...) abort "{{{
+  let id = matchstr(string(function('s:SID')), '\C\v\<SNR\>\d+_')
+  return a:0 < 1 ? id : id . a:1
 endfunction "}}}
-
-function! vimfn#redir(cmd, ...) "{{{
+function! s:redir(cmd, ...) abort "{{{
   let [_list, ret, &list] = [&list, '', 0]
   redir => ret
   try
@@ -24,8 +19,7 @@ function! vimfn#redir(cmd, ...) "{{{
   endtry
   return a:0 && a:1 ? split(ret, '\v\r\n|\n|\r') : ret
 endfunction "}}}
-
-function! vimfn#getuserrtpa() "{{{
+function! s:getuserrtpa() abort "{{{
   let rtpa = []
   let home = expand('~')
   let dotvim = isdirectory(home . '/.vim') ? home . '/.vim' : isdirectory(home . '/vimfiles') ? home . '/vimfiles' : ''
@@ -37,8 +31,7 @@ function! vimfn#getuserrtpa() "{{{
   endif
   return rtpa
 endfunction "}}}
-
-function! vimfn#type(fnName) "{{{
+function! s:type(fnName) abort "{{{
   let [name, prefix, _] = [a:fnName, a:fnName[:1], s:FUNCTYPE]
 
   if name =~ '\v^\d+$'                           | return _.NUM
@@ -57,8 +50,7 @@ function! vimfn#type(fnName) "{{{
   endif
   return 0
 endfunction "}}}
-
-function! vimfn#interrogation(lines, d, cache) " {{{
+function! s:interrogation(lines, d, cache) abort " {{{
   let [_val, lines] = [get(a:d, 'lines', ['']), copy(a:lines)]
   let [_len, lnum] = [len(_val) - 1, len(lines)]
   let _lnum = _len
@@ -75,7 +67,7 @@ function! vimfn#interrogation(lines, d, cache) " {{{
       let col = match(line, regexp) + 1
       if col
         let name = matchlist(line, regexp)[2]
-        if vimfn#identification(name, a:d)
+        if s:identification(name, a:d)
           call extend(a:d, {'line': lnum + 1, 'col': col + len(idnt)})
           return 1
         elseif is_cache == 1
@@ -104,8 +96,7 @@ function! vimfn#interrogation(lines, d, cache) " {{{
     endif
   endwhile
 endfunction "}}}
-
-function! vimfn#identification(name, d) "{{{
+function! s:identification(name, d) abort "{{{
   let _ = s:FUNCTYPE
   if a:d.type is _.AUTOLOAD
     return matchstr(a:name, '\v#[^#]+$') ==# matchstr(a:d.name, '\v#[^#]+$')
@@ -119,9 +110,11 @@ function! vimfn#identification(name, d) "{{{
     return a:name ==# a:d.name
   endif
 endfunction "}}}
-
+function! s:Investigator(name) abort "{{{
+  return call('s:Investigator_' . a:name, [])
+endfunction "}}}
 " Investigators {{{
-function! s:Investigator_exists_function() "{{{
+function! s:Investigator_exists_function() abort "{{{
   let gator = {
   \ 'name': 'exists_function',
   \ 'description': 'search at the output of the `verbose function`',
@@ -134,7 +127,7 @@ function! s:Investigator_exists_function() "{{{
   endfunction "}}}
   function! gator._toSNR(name) "{{{
     let file = expand('%:p')
-    let files = [''] + (file == '' ? [] : vimfn#redir('scriptnames', 1))
+    let files = [''] + (file == '' ? [] : s:redir('scriptnames', 1))
     for i in range(len(files))
       if stridx(files[i], file) + 1 | break | endif
     endfor
@@ -145,13 +138,13 @@ function! s:Investigator_exists_function() "{{{
     let _name = a:d.type is s:FUNCTYPE.SCRIPT ?
     \ self._toSNR(a:d.name) :
     \ self._isRef(a:d.name) ? split(string(eval(a:d.name)), "'")[1] : a:d.name
-    let task = { 'name': _name, 'type': vimfn#type(_name) }
+    let task = { 'name': _name, 'type': s:type(_name) }
     if _name =~ '\v^\d+$'
       let _name = '{' . _name . '}'
     endif
     if exists('*' . _name)
       let _lines =
-      \   map(vimfn#redir('1verbose function ' . _name, 1), 'substitute(v:val, ''\v^(\d+)?\s+'', '''', '''')')
+      \   map(s:redir('1verbose function ' . _name, 1), 'substitute(v:val, ''\v^(\d+)?\s+'', '''', '''')')
       let task.path = matchstr(remove(_lines, 1), '\v\f+$')
       "pathは確定
       let a:d.path = task.path
@@ -162,7 +155,7 @@ function! s:Investigator_exists_function() "{{{
 
   return gator
 endfunction "}}}
-function! s:Investigator_autoload_base() "{{{
+function! s:Investigator_autoload_base() abort "{{{
   let gator = {
   \ 'enable': [s:FUNCTYPE.AUTOLOAD],
   \ 'empty': 1
@@ -178,7 +171,7 @@ function! s:Investigator_autoload_base() "{{{
 
   return gator
 endfunction "}}}
-function! s:Investigator_autoload_rtp() "{{{
+function! s:Investigator_autoload_rtp() abort "{{{
   let gator = extend({
   \ 'name': 'autoload_base',
   \ 'description': 'search the autoload function from &rtp',
@@ -190,7 +183,7 @@ function! s:Investigator_autoload_rtp() "{{{
 
   return gator
 endfunction "}}}
-function! s:Investigator_autoload_lazy() "{{{
+function! s:Investigator_autoload_lazy() abort "{{{
   let gator = extend({
   \ 'name': 'autoload_lazy',
   \ 'description': 'search the autoload function from neobundle lazy plugin pathes',
@@ -207,14 +200,14 @@ function! s:Investigator_autoload_lazy() "{{{
 
   return gator
 endfunction "}}}
-function! s:Investigator_autoload_user_rtpa() "{{{
+function! s:Investigator_autoload_user_rtpa() abort "{{{
   let gator = extend({
   \ 'name': 'autoload_user_rtpa',
   \ 'description': 'search the autoload function from ~/dotvim and ~/dotvim/bundle',
   \}, s:Investigator_autoload_base())
 
   function! gator.tasks(d)
-    let rtpa = vimfn#getuserrtpa()
+    let rtpa = s:getuserrtpa()
     if len(rtpa)
       call map(rtpa, 'fnamemodify(v:val, '':h'')')
       return self._tasks(a:d, join(rtpa, ','))
@@ -223,7 +216,7 @@ function! s:Investigator_autoload_user_rtpa() "{{{
 
   return gator
 endfunction "}}}
-function! s:Investigator_vital_help() "{{{
+function! s:Investigator_vital_help() abort "{{{
   let gator = {
   \ 'name': 'vital_help',
   \ 'description': '',
@@ -245,13 +238,27 @@ function! s:Investigator_vital_help() "{{{
 endfunction "}}}
 "}}}
 
-function! vimfn#Investigator(name) "{{{
-  return call('s:Investigator_' . a:name, [])
+
+let s:FUNCTYPE = {
+\ 'AUTOLOAD': 1, 'GLOBAL': 2, 'LOCAL': 3, 'SCRIPT': 4,
+\ 'SNR': 5, 'G_DICT': 6, 'NUM': 7, 'DICT': 0  }
+
+function! vimfn#FUNCTYPE() abort "{{{
+  return deepcopy(s:FUNCTYPE)
 endfunction "}}}
-function! vimfn#find(fnName, gators, ...) " {{{
+function! vimfn#import(imports) abort  "{{{
+  if type(a:imports) is type('')
+    return function(s:SID(a:imports))
+  elseif type(a:imports) is type([])
+    let ret = {}
+    for name in a:imports | let ret[name] = function(s:SID(name)) | endfor
+    return ret
+  endif
+endfunction "}}}
+function! vimfn#find(fnName, gators, ...) abort " {{{
   let fs = {}
   let cache = []
-  let d = {'name': a:fnName, 'type': vimfn#type(a:fnName), 'tasks': []}
+  let d = {'name': a:fnName, 'type': s:type(a:fnName), 'tasks': []}
 
   for gator in a:gators
     if (has_key(gator, 'disable') && index(gator.disable, d.type) isnot -1) ||
@@ -272,7 +279,7 @@ function! vimfn#find(fnName, gators, ...) " {{{
     if !has_key(fs, task.path)
       let fs[task.path] = filereadable(task.path) ? readfile(task.path) : []
     endif
-    if vimfn#interrogation(fs[task.path], task, cache) | return task | endif
+    if s:interrogation(fs[task.path], task, cache) | return task | endif
   endfor
   return len(cache) is 1 ?
   \  extend(cache[0], {'path': expand(d.path)}) :

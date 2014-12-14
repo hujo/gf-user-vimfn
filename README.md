@@ -28,17 +28,22 @@ Conditions to operate
 Provide functions just one
 
 ``` vim
+" find from a keyword of the position of the cursor
 call gf#vimfn#open()
+
+" find from the string given in argument
 call gf#vimfn#open('function name')
 ```
 
 ``` vim
-Example:
+" Example:
 call gf#vimfn#open('syntaxcomplete#Complete')
+call gf#vimfn#open('s:hogefunc')
 
 " It works if the function is loaded
 call gf#vimfn#open('GetVimIndent')
 call gf#vimfn#open('g:SyntasticRegistry.Instance')
+call gf#vimfn#open('<SNR>1_hogefunc')
 call gf#vimfn#open('1')
 ```
 

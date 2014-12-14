@@ -9,7 +9,8 @@ let s:ctrlp_vimfn_indexings = ['runtime', 'bundle']
 
 let s:LOADED_SCRIPTS = []
 let s:INDEXD = 0
-let s:Invs = [vimfn#Investigator('exists_function')]
+let s:VF = vimfn#import(['Investigator', 'redir', 'getuserrtpa'])
+let s:Invs = [s:VF.Investigator('exists_function')]
 
 if !exists('s:Id')
   cal add(g:ctrlp_ext_vars, {
@@ -22,13 +23,13 @@ if !exists('s:Id')
   let s:Id = g:ctrlp_builtins + len(g:ctrlp_ext_vars)
 endif
 
-function! s:getOptVar(name, ...) "{{{
+function! s:getOptVar(name, ...) abort "{{{
   let optvar = get(g:, a:name, s:{a:name})
   return a:0 && type(a:1) == type('') ? optvar[a:1] : optvar
 endfunction "}}}
 function! s:getLoadedScripts() abort "{{{
   let ret = {}
-  for path in vimfn#redir('scriptnames', 1)
+  for path in s:VF.redir('scriptnames', 1)
     let path = tr(path, '\', '/')
     if stridx(path, '/autoload/') != -1
       let path = fnamemodify(split(path, '\v\d+:\s')[-1], ':p:gs?\\?/?')
@@ -47,7 +48,7 @@ function! s:listToRuntimeAutoload(pathes) abort "{{{
 endfunction "}}}
 function! s:listToBundleAutoload(pathes) abort "{{{
   return index(s:getOptVar('ctrlp_vimfn_indexings'), 'bundle') != -1
-  \    ? s:appendAll(a:pathes, vimfn#getuserrtpa())
+  \    ? s:appendAll(a:pathes, s:VF.getuserrtpa())
   \    : a:paths
 endfunction "}}}
 function! s:makePathes(pathes, loaded) abort "{{{
@@ -96,20 +97,20 @@ endfunction "}}}
 function! s:indexing() abort "{{{
   if s:INDEXD is 1 | return | endif
   if !empty(s:makeTags(s:listToBundleAutoload(s:listToRuntimeAutoload([]))))
-    call add(s:Invs, vimfn#Investigator('autoload_rtp'))
-    call add(s:Invs, vimfn#Investigator('autoload_user_rtpa'))
+    call add(s:Invs, s:VF.Investigator('autoload_rtp'))
+    call add(s:Invs, s:VF.Investigator('autoload_user_rtpa'))
   endif
   let s:INDEXD = 1
 endfunction "}}}
 
-function! ctrlp#vimfn#id() "{{{
+function! ctrlp#vimfn#id() abort "{{{
   return s:Id
 endfunction "}}}
-function! ctrlp#vimfn#init() "{{{
+function! ctrlp#vimfn#init() abort "{{{
   call s:indexing()
-  let loaded = vimfn#redir('scriptnames', 1)
+  let loaded = s:VF.redir('scriptnames', 1)
   if len(s:LOADED_SCRIPTS) != len(loaded)
-    for line in vimfn#redir('function', 1)
+    for line in s:VF.redir('function', 1)
       let line = strpart(strpart(line, 0, stridx(line, '(')), 9)
       if index(s:tags, line) == -1
         call add(s:tags, line)
@@ -120,7 +121,7 @@ function! ctrlp#vimfn#init() "{{{
   endif
   return s:tags
 endfunction "}}}
-function! ctrlp#vimfn#accept(mode, str) "{{{
+function! ctrlp#vimfn#accept(mode, str) abort "{{{
   call ctrlp#exit()
   let d = vimfn#find(a:str, s:Invs)
   if has_key(d, 'path') && has_key(d, 'line')

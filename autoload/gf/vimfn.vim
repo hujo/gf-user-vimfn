@@ -5,6 +5,7 @@ set cpo&vim
 "}}}
 
 let s:FUNCTYPE = vimfn#FUNCTYPE()
+let s:Investigator = vimfn#import('Investigator')
 
 let s:DEFAULT_OPTS = {
 \  'gf_vimfn_enable_filetypes': ['vim', 'vimspec', 'help'],
@@ -14,7 +15,7 @@ let s:DEFAULT_OPTS = {
 \}
 
 " Option functions {{{
-function! s:getOpt(optname) " :? {{{
+function! s:getOpt(optname) abort "{{{
   let optname = 'gf_vimfn_' . a:optname
   let default = s:DEFAULT_OPTS[optname]
   if !exists('g:' . optname)
@@ -23,14 +24,14 @@ function! s:getOpt(optname) " :? {{{
   let opt = g:[optname]
   return type(opt) is type(default) ? opt : default
 endfunction "}}}
-function! s:isEnable() "{{{
+function! s:isEnable() abort "{{{
   if s:getOpt('enable_syn') &&
   \   synIDattr(synID(line('.'), col('.'), 0), 'name') =~# '\v\C^vim'
     return 1
   endif
   return index(s:getOpt('enable_filetypes'), &ft) isnot -1
 endfunction "}}}
-function! s:isJumpOK(d) " :int {{{
+function! s:isJumpOK(d) abort "{{{
   if a:d is 0
     return 0
   elseif a:d.line isnot 0 && a:d.col isnot 0
@@ -44,7 +45,7 @@ function! s:isJumpOK(d) " :int {{{
 endfunction "}}}
 "}}}
 " pick word functions {{{
-function! s:_pickCursor(pat, ...) "{{{
+function! s:_pickCursor(pat, ...) abort "{{{
   let pat = a:pat
   let [line, ret] = [getline(line('.')), '']
   if !get(a:000, 0, 0)
@@ -68,7 +69,7 @@ function! s:_pickCursor(pat, ...) "{{{
   endif
   return ret
 endfunction "}}}
-function! s:pickCursor() "{{{
+function! s:pickCursor() abort "{{{
   if &l:ft == 'help'
     "conceal
     if index(['helpStar', 'helpBar'],
@@ -78,14 +79,14 @@ function! s:pickCursor() "{{{
   endif
   return s:_pickCursor('\v[a-zA-Z0-9#._:<>]')
 endfunction "}}}
-function! s:pickFname(str) "{{{
+function! s:pickFname(str) abort "{{{
   let name = matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:.]+')
   while name[-1 :] =~# '\v[:.]'
     let name = name[: -2]
   endwhile
   return name =~# '\v^\d+$' ? '' : name
 endfunction "}}}
-function! s:_pickNumFuncPP() "{{{
+function! s:_pickNumFuncPP() abort "{{{
   let [line, col] = [getline(line('.')), col('.') - 1]
   let cpos = col
   let regc = '\v\C[function''()0-9]'
@@ -103,7 +104,7 @@ function! s:_pickNumFuncPP() "{{{
   let ret = col + strlen(word) > cpos ? matchstr(word, '\v\d+') : ''
   return ret
 endfunction "}}}
-function! s:pickNumericFunc() "{{{
+function! s:pickNumericFunc() abort "{{{
   let str = s:_pickNumFuncPP()
   if str !=# '' | return str | endif
 
@@ -117,19 +118,19 @@ function! s:pickNumericFunc() "{{{
 endfunction "}}}
 "}}}
 
-function! s:SID(...) "{{{
+function! s:SID(...) abort "{{{
   let id = matchstr(string(function('s:SID')), '\C\v\<SNR\>\d+_')
   return a:0 < 1 ? id : id . a:1
 endfunction "}}}
-function! s:_getVar(var) "{{{
+function! s:_getVar(var) abort "{{{
   return s:[a:var]
 endfunction "}}}
 
-function! s:Investigator_autoload_current() "{{{
+function! s:Investigator_autoload_current() abort "{{{
   let gator = extend({
   \ 'name': 'autoload_current',
   \ 'description': 'find on the assumption that a runtime path the path where the current file',
-  \}, vimfn#Investigator('autoload_base'))
+  \}, s:Investigator('autoload_base'))
 
   function! gator._plugdir()
     let [ret, dirs] = [[], split(expand('%:p:h'), '\v[\/]')]
@@ -151,7 +152,7 @@ function! s:Investigator_autoload_current() "{{{
 
   return gator
 endfunction "}}}
-function! s:Investigator_current_file() "{{{
+function! s:Investigator_current_file() abort "{{{
   let gator = {
   \ 'name': 'current_file',
   \ 'description': 'find in a file that is currently open',
@@ -166,14 +167,14 @@ function! s:Investigator_current_file() "{{{
 endfunction "}}}
 
 let s:Investigators = []
-call add(s:Investigators, vimfn#Investigator('exists_function'))
-call add(s:Investigators, vimfn#Investigator('autoload_rtp'))
-call add(s:Investigators, vimfn#Investigator('autoload_lazy'))
+call add(s:Investigators, s:Investigator('exists_function'))
+call add(s:Investigators, s:Investigator('autoload_rtp'))
+call add(s:Investigators, s:Investigator('autoload_lazy'))
 call add(s:Investigators, s:Investigator_autoload_current())
-call add(s:Investigators, vimfn#Investigator('vital_help'))
+call add(s:Investigators, s:Investigator('vital_help'))
 call add(s:Investigators, s:Investigator_current_file())
 
-function! s:find(...) "{{{
+function! s:find(...) abort "{{{
   if a:0 > 0 && a:1 isnot 0
     let kwrd = a:1 =~# '\v^\d+$' ? a:1 : s:pickFname(a:1)
   else
@@ -188,15 +189,15 @@ function! s:find(...) "{{{
 endfunction "}}}
 
 " Autoload Functions {{{
-function! gf#vimfn#sid(...) "{{{
+function! gf#vimfn#sid(...) abort "{{{
   return call(function('s:SID'), a:000)
 endfunction "}}}
-function! gf#vimfn#find(...) "{{{
+function! gf#vimfn#find(...) abort "{{{
   if s:isEnable()
     return call('s:find', a:000)
   endif
 endfunction "}}}
-function! gf#vimfn#open(...) "{{{
+function! gf#vimfn#open(...) abort "{{{
   let d = call('s:find', a:000)
   if d isnot 0
     exe s:getOpt('open_action') d.path
