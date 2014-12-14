@@ -1,21 +1,5 @@
 scriptencoding utf-8
 
-" Util {{{
-function! s:func(name)
-  return function(gf#vimfn#sid(a:name))
-endfunction
-
-function! s:var(name)
-  return s:func('_getVar')(a:name)
-endfunction
-
-function! s:not_equals(a, b, mess)
-  if a:a is a:b
-    call s:assert.fail(a:mess)
-  endif
-endfunction
-"}}}
-
 let s:FILE = fnamemodify(expand('<sfile>'), ':p')
 let s:DIR = fnamemodify(s:FILE, ':h') . '/'
 let s:assert = themis#helper('assert')
