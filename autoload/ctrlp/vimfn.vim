@@ -43,7 +43,7 @@ function! s:appendAll(a, b) abort "{{{
 endfunction "}}}
 function! s:listToRuntimeAutoload(pathes) abort "{{{
   return index(s:getOptVar('ctrlp_vimfn_indexings'), 'runtime') != -1
-  \    ? s:appendAll(a:pathes, split(globpath(&rtp, 'autoload'), '\n'))
+  \    ? s:appendAll(a:pathes, split(globpath(&runtimepath, 'autoload'), '\n'))
   \    : a:paths
 endfunction "}}}
 function! s:listToBundleAutoload(pathes) abort "{{{

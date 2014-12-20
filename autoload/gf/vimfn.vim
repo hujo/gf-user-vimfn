@@ -1,7 +1,7 @@
 scriptencoding utf-8
 "Save CPO {{{
-let s:save_cpo = &cpo
-set cpo&vim
+let s:save_cpo = &cpoptions
+set cpoptions&vim
 "}}}
 
 let s:FUNCTYPE = vimfn#FUNCTYPE()
@@ -29,7 +29,7 @@ function! s:isEnable() abort "{{{
   \   synIDattr(synID(line('.'), col('.'), 0), 'name') =~# '\v\C^vim'
     return 1
   endif
-  return index(s:getOpt('enable_filetypes'), &ft) isnot -1
+  return index(s:getOpt('enable_filetypes'), &filetype) isnot -1
 endfunction "}}}
 function! s:isJumpOK(d) abort "{{{
   if a:d is 0
@@ -70,7 +70,7 @@ function! s:_pickCursor(pat, ...) abort "{{{
   return ret
 endfunction "}}}
 function! s:pickCursor() abort "{{{
-  if &l:ft == 'help'
+  if &l:ft ==? 'help'
     "conceal
     if index(['helpStar', 'helpBar'],
     \ synIDattr(synID(line('.'), col('.'), 0), 'name')) != -1
@@ -145,7 +145,7 @@ function! s:Investigator_autoload_current() abort "{{{
 
   function! gator.tasks(d)
     let dir = self._plugdir()
-    if dir != ''
+    if dir !=# ''
       return self._tasks(a:d, dir)
     endif
   endfunction
@@ -179,7 +179,7 @@ function! s:find(...) abort "{{{
     let kwrd = a:1 =~# '\v^\d+$' ? a:1 : s:pickFname(a:1)
   else
     let kwrd = s:pickNumericFunc()
-    if kwrd == ''
+    if kwrd ==# ''
       let kwrd = s:pickFname(s:pickCursor())
     endif
   endif
@@ -207,7 +207,7 @@ endfunction "}}}
 "}}}
 
 " Restore CPO {{{
-let &cpo = s:save_cpo
+let &cpoptions = s:save_cpo
 unlet! s:save_cpo
 "}}}
 " vim:set et sts=2 ts=2 sw=2 fdm=marker:

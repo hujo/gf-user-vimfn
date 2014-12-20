@@ -1,7 +1,7 @@
 scriptencoding utf-8
 "Save CPO {{{
-let s:save_cpo = &cpo
-set cpo&vim
+let s:save_cpo = &cpoptions
+set cpoptions&vim
 "}}}
 
 function! s:SID(...) abort "{{{
@@ -23,9 +23,9 @@ function! s:getuserrtpa() abort "{{{
   let rtpa = []
   let home = expand('~')
   let dotvim = isdirectory(home . '/.vim') ? home . '/.vim' : isdirectory(home . '/vimfiles') ? home . '/vimfiles' : ''
-  if dotvim != ''
+  if dotvim !=# ''
     let bundle = isdirectory(dotvim . '/bundle') ? dotvim . '/bundle' : ''
-    if bundle != ''
+    if bundle !=# ''
       let rtpa = rtpa + split(globpath(bundle, '*/autoload'))
     endif
   endif
@@ -34,19 +34,19 @@ endfunction "}}}
 function! s:type(fnName) abort "{{{
   let [name, prefix, _] = [a:fnName, a:fnName[:1], s:FUNCTYPE]
 
-  if name =~ '\v^\d+$'                           | return _.NUM
-  elseif name =~ '\v^\C[a-z1-9]*$'               | return 0
+  if name =~# '\v^\d+$'                           | return _.NUM
+  elseif name =~# '\v^\C[a-z1-9]*$'               | return 0
   elseif prefix ==# 'g:'
-    if name =~ '\v\.'                            | return _.G_DICT
-    elseif name[2] =~ '\v\C[A-Z]'                | return _.GLOBAL
+    if name =~# '\v\.'                            | return _.G_DICT
+    elseif name[2] =~# '\v\C[A-Z]'                | return _.GLOBAL
     endif
-  elseif prefix ==# 'l:' && name[2] isnot ''     | return _.LOCAL
-  elseif prefix ==# 's:' && name[2] isnot ''     | return _.SCRIPT
-  elseif name =~ '\v^\c\<sid\>'                  | return _.SCRIPT
-  elseif name =~ '\v^\c\<snr\>'                  | return _.SNR
-  elseif name =~ '\v^\C[A-Z][a-zA-Z0-9_]*$'      | return _.GLOBAL
-  elseif name =~ '\v\C\a+#[a-zA-Z0-9_#]+$'       | return _.AUTOLOAD
-  elseif name =~ '\v\C\a+#[a-zA-Z0-9_#.]+$'      | return _.G_DICT
+  elseif prefix ==# 'l:' && name[2] isnot# ''     | return _.LOCAL
+  elseif prefix ==# 's:' && name[2] isnot# ''     | return _.SCRIPT
+  elseif name =~# '\v^\c\<sid\>'                  | return _.SCRIPT
+  elseif name =~# '\v^\c\<snr\>'                  | return _.SNR
+  elseif name =~# '\v^\C[A-Z][a-zA-Z0-9_]*$'      | return _.GLOBAL
+  elseif name =~# '\v\C\a+#[a-zA-Z0-9_#]+$'       | return _.AUTOLOAD
+  elseif name =~# '\v\C\a+#[a-zA-Z0-9_#.]+$'      | return _.G_DICT
   endif
   return 0
 endfunction "}}}
@@ -60,7 +60,7 @@ function! s:interrogation(lines, d, cache) abort " {{{
 
   while lnum
     let lnum -= 1
-    let idnt = matchstr(lines[lnum], '\v^\s+')
+    let idnt = matchstr(lines[lnum], '\v^[ \t]+')
     let line = strpart(lines[lnum], len(idnt))
 
     if _lnum is 0 && line[0] !=# '"'
@@ -72,22 +72,21 @@ function! s:interrogation(lines, d, cache) abort " {{{
           return 1
         elseif is_cache == 1
           call add(a:cache, {'line': lnum + 1, 'col': col + len(idnt), 'name': name})
-          "echoe PP(a:cache)
         endif
       endif
-    else
-      if line[0] ==# '\'
-        let lines[lnum - 1] .= strpart(line, 1) | continue
-      endif
+    elseif line[0] ==# '\'
+      let lines[lnum - 1] .= strpart(line, 1)
+      continue
     endif
 
     if _lnum > 0
+      "NOTE: limit only if the stridx () returns 0 ?
       if _lnum is _len
         let _lnum = stridx(line, 'endf') + 1 ? _lnum - 1 : _len
       else
         let _lnum = stridx(line, _val[_lnum]) + 1 ? _lnum - 1 : _len
-        if _lnum == _len
-          " endf の前の行が endf の場合
+        if _lnum is _len
+          " If the previous line of endf is endf
           let _lnum = stridx(line, 'endf') + 1 ? _lnum - 1 : _len
         endif
       endif
@@ -122,12 +121,12 @@ function! s:Investigator_exists_function() abort "{{{
   \}
 
   function! gator._isRef(name) "{{{
-    "NOTE: 関数のタイプを考慮しない点に注意！
+    "NOTE: Note that it does not take into account the type of function!
     return exists(a:name) && type(eval(a:name)) is type(function('tr'))
   endfunction "}}}
   function! gator._toSNR(name) "{{{
     let file = expand('%:p')
-    let files = [''] + (file == '' ? [] : s:redir('scriptnames', 1))
+    let files = [''] + (file ==# '' ? [] : s:redir('scriptnames', 1))
     for i in range(len(files))
       if stridx(files[i], file) + 1 | break | endif
     endfor
@@ -137,18 +136,17 @@ function! s:Investigator_exists_function() abort "{{{
   function! gator.tasks(d)
     let _name = a:d.type is s:FUNCTYPE.SCRIPT ?
     \ self._toSNR(a:d.name) :
-    \ self._isRef(a:d.name) ? split(string(eval(a:d.name)), "'")[1] : a:d.name
+    \ self._isRef(a:d.name) ? split(string(eval(a:d.name)), '''')[1] : a:d.name
     let task = { 'name': _name, 'type': s:type(_name) }
-    if _name =~ '\v^\d+$'
+    if _name =~# '\v^\d+$'
       let _name = '{' . _name . '}'
     endif
     if exists('*' . _name)
       let _lines =
       \   map(s:redir('1verbose function ' . _name, 1), 'substitute(v:val, ''\v^(\d+)?\s+'', '''', '''')')
       let task.path = matchstr(remove(_lines, 1), '\v\f+$')
-      "pathは確定
+      " path is established
       let a:d.path = task.path
-      "NOTE: is_cache キャッシュをするかどうかの基準を決める？
       return [extend({'lines': _lines, 'is_cache': len(_lines) > 0}, task), task]
     endif
   endfunction
@@ -178,7 +176,7 @@ function! s:Investigator_autoload_rtp() abort "{{{
   \}, s:Investigator_autoload_base())
 
   function! gator.tasks(d)
-    return self._tasks(a:d, &rtp)
+    return self._tasks(a:d, &runtimepath)
   endfunction
 
   return gator
@@ -228,8 +226,8 @@ function! s:Investigator_vital_help() abort "{{{
     let t = ['__latest__'] + split(a:d.name, '\v\.')[1:]
     let p = 'autoload/vital/' . join(t[:-2], '/') . '.vim'
     let name = t[-1]
-    let path = get(split(globpath(&rtp, p), '\v\r\n|\n|\r'), 0, '')
-    if path != '' && name != ''
+    let path = get(split(globpath(&runtimepath, p), '\v\r\n|\n|\r'), 0, '')
+    if path !=# '' && name !=# ''
       return [{'name': 's:' . name, 'path': path, 'type': s:FUNCTYPE.SCRIPT}]
     endif
   endfunction
@@ -287,6 +285,6 @@ function! vimfn#find(fnName, gators, ...) abort " {{{
 endfunction "}}}
 
 " Restore CPO {{{
-let &cpo = s:save_cpo
+let &cpoptions = s:save_cpo
 unlet! s:save_cpo
 " vim:set et sts=2 ts=2 sw=2 fdm=marker:
