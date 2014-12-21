@@ -29,12 +29,13 @@ function! s:getOptVar(name, ...) abort "{{{
 endfunction "}}}
 function! s:pathNormalize(path) abort "{{{
   let path = glob(a:path)
-  return path[0] =~# '\v[a-z]' ? path[2:] : path
+  let az = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  return stridx(az, path[0]) + 1 ? path[2:] : path
 endfunction "}}}
 function! s:getLoadedScripts() abort "{{{
   let ret = {}
   for path in s:VF.redir('scriptnames', 1)
-    if match(path, '\v[\\/]autoload[\\/]') != -1
+    if matchstr(path, '\v[\\/]autoload[\\/]') != -1
       let ret[s:pathNormalize(split(path, '\v\d+:\s')[-1])] = 1
     endif
   endfor
