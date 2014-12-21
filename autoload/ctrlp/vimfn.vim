@@ -27,13 +27,15 @@ function! s:getOptVar(name, ...) abort "{{{
   let optvar = get(g:, a:name, s:{a:name})
   return a:0 && type(a:1) == type('') ? optvar[a:1] : optvar
 endfunction "}}}
+function! s:pathNormalize(path) abort "{{{
+  let path = glob(a:path)
+  return path[0] =~# '\v[a-z]' ? path[2:] : path
+endfunction "}}}
 function! s:getLoadedScripts() abort "{{{
   let ret = {}
   for path in s:VF.redir('scriptnames', 1)
-    let path = tr(path, '\', '/')
-    if stridx(path, '/autoload/') != -1
-      let path = fnamemodify(split(path, '\v\d+:\s')[-1], ':p:gs?\\?/?')
-      let ret[path] = 1
+    if match(path, '\v[\\/]autoload[\\/]') != -1
+      let ret[s:pathNormalize(split(path, '\v\d+:\s')[-1])] = 1
     endif
   endfor
   return ret
@@ -56,7 +58,7 @@ function! s:makePathes(pathes, loaded) abort "{{{
   let _s = {}
   let ret = []
   for path in a:pathes
-    let path = glob(path)
+    let path = s:pathNormalize(path)
     if !has_key(_s, path)
       let _s[path] = 1
       for path in split(globpath(path, '**/*.vim'), '\v\r\n|\n|\r')
