@@ -80,15 +80,10 @@ function! s:interrogation(lines, d, cache) abort " {{{
     endif
 
     if _lnum > 0
-      "NOTE: limit only if the stridx () returns 0 ?
       if _lnum is _len
-        let _lnum = stridx(line, 'endf') + 1 ? _lnum - 1 : _len
+        let _lnum = stridx(line, 'endf') is 0 ? _lnum - 1 : _len
       else
-        let _lnum = stridx(line, _val[_lnum]) + 1 ? _lnum - 1 : _len
-        if _lnum is _len
-          " If the previous line of endf is endf
-          let _lnum = stridx(line, 'endf') + 1 ? _lnum - 1 : _len
-        endif
+        let _lnum = stridx(line, _val[_lnum]) is 0 ? _lnum - 1 : _len
       endif
     else
       let _lnum = _len

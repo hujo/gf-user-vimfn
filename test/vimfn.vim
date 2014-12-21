@@ -79,31 +79,32 @@ endfunction "}}}
 
 function! s:suite.__Investigator__()
   let inv = themis#suite('Investigator')
-  function! s:Investigator_exists_function(line, names) "{{{
-    let ef = vimfn#import('Investigator')('exists_function')
-    let line = a:line
+  function! s:Investigator_exists_function(names) "{{{
+    let gators = [vimfn#import('Investigator')('exists_function')]
     for name in a:names
-      let d = ef.tasks({'name': name, 'type': vimfn#import('type')(name)})[0]
-      let ca = []
-      call vimfn#import('interrogation')(line, d, ca)
-      if len(ca) is 1
-        let d = ca[0]
-      endif
-      call s:assert.not_equals(get(d, 'line', 0), 0, string(d))
+      let res = vimfn#find(name, gators)
+      let anslnum = testplug#test#getlnum(name)
+      call s:assert.equals(get(res, 'line', 0), anslnum, name)
     endfor
   endfunction "}}}
-  function! inv.exists_function()
-    call s:assert.todo()
-  endfunction
   function! inv.exists_function_with_testplugin()
-    let sf = s:DIR . 'test_plugin/autoload/testplug/test.vim'
-    exe 'so' sf
-
-    " Test_6 : function {Variable}
-    " g:TestPlugin.fn : Global dictionary function
+    let &rtp .= ',' . s:DIR . 'test_plugin/'
+    let file = testplug#test#load()
+    e `=file`
     call T2T(function('s:Investigator_exists_function'),
-    \   readfile(sf), ['Test_6', 'g:TestPlugin.fn']
-    \)
+    \  [
+    \    'testplug#test#test_3',
+    \    'testplug#test#test_4',
+    \    'Test_5',
+    \    'Test_6',
+    \    's:test_7',
+    \    's:madein_test7',
+    \    'g:TestPlugin.fn',
+    \    'Test8',
+    \    'Test9',
+    \    'Test10',
+    \ ])
+    bdelete %
   endfunction
 endfunction
 " vim:set et sts=2 ts=2 sw=2 fdm=marker:

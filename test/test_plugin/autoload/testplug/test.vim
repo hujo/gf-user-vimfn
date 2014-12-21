@@ -3,6 +3,7 @@ scriptencoding utf-8
 let s:save_cpo = &cpo
 set cpo&vim
 let s:lnums = {}
+let s:FILE = expand('<sfile>:p')
 
 let s:lnums['s:test_1'] = expand('<slnum>') + 1
 function! s:test_1() "{{{
@@ -50,18 +51,36 @@ let s:lnums['s:test_7'] = expand('<slnum>') + 1
 function! s:test_7() "{{{
   let name = 's:test_7'
   let description = 'have defined a function in the function'
+  let s:lnums['s:madein_test7'] = s:lnums['s:test_7'] + expand('<slnum>') + 1
   function! s:madein_test7()
     let name = 'madein_test7'
-    return testplug#test#getlnum('s:test_7') + expand('<slnum>')
   endfunction
 endfunction "}}}
+call s:test_7()
 
 let g:TestPlugin = {}
+let s:lnums['g:TestPlugin.fn'] = expand('<slnum>') + 1
 function! TestPlugin.fn() "{{{
   let description = "Global dictionary function"
 endfunction "}}}
 
+let s:lnums['s:dynamicCreate'] = expand('<slnum>') + 1
+function! s:dynamicCreate() "{{{
+  let s:lnums['Test8'] = s:lnums['s:dynamicCreate'] + 5
+  let s:lnums['Test9'] = s:lnums['Test8'] + 3
+  let s:lnums['Test10'] = s:lnums['Test8'] - 1
+  exe join(['function! Test10()', '', 'endfunction'], "\n")
+  fu! Test8()
+    let description = 'Global function made in the function'
+  endf
+  fu! Test9()
+    let description = 'Global function made in the function2'
+  endf
+endfunction "}}}
+call s:dynamicCreate()
+
 function! testplug#test#load() "{{{
+  return s:FILE
 endfunction "}}}
 
 function! testplug#test#getlnum(name)
