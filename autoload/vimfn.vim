@@ -26,7 +26,7 @@ function! s:getuserrtpa() abort "{{{
   if dotvim !=# ''
     let bundle = isdirectory(dotvim . '/bundle') ? dotvim . '/bundle' : ''
     if bundle !=# ''
-      let rtpa = rtpa + split(globpath(bundle, '*/autoload'))
+      let rtpa = rtpa + globpath(bundle, '*/autoload', 0, 1)
     endif
   endif
   return rtpa
@@ -156,8 +156,8 @@ function! s:Investigator_autoload_base() abort "{{{
 
   function! gator._tasks(d, base)
     let t = join(split(a:d.name, '#')[:-2], '/') . '.vim'
-    for path in (split(globpath(a:base, 'autoload/' . t), '\v\r\n|\n|\r')
-    \          + split(globpath(a:base, 'plugin/' . t), '\v\r\n|\n|\r'))
+    for path in (globpath(a:base, 'autoload/' . t, 0, 1)
+    \          + globpath(a:base, 'plugin/' . t, 0, 1))
       return [{'name': a:d.name, 'path': path, 'type': s:FUNCTYPE.AUTOLOAD}]
     endfor
   endfunction
@@ -221,7 +221,7 @@ function! s:Investigator_vital_help() abort "{{{
     let t = ['__latest__'] + split(a:d.name, '\v\.')[1:]
     let p = 'autoload/vital/' . join(t[:-2], '/') . '.vim'
     let name = t[-1]
-    let path = get(split(globpath(&runtimepath, p), '\v\r\n|\n|\r'), 0, '')
+    let path = get(globpath(&runtimepath, p, 0, 1), 0, '')
     if path !=# '' && name !=# ''
       return [{'name': 's:' . name, 'path': path, 'type': s:FUNCTYPE.SCRIPT}]
     endif

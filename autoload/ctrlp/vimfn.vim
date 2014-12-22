@@ -28,9 +28,8 @@ function! s:getOptVar(name, ...) abort "{{{
   return a:0 && type(a:1) == type('') ? optvar[a:1] : optvar
 endfunction "}}}
 function! s:pathNormalize(path) abort "{{{
-  let path = glob(a:path)
-  let az = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  return stridx(az, path[0]) + 1 ? path[2:] : path
+  let path = tr(a:path, '\', '/')
+  return path[0] ==# '/' ? path : path[2:]
 endfunction "}}}
 function! s:getLoadedScripts() abort "{{{
   let ret = {}
@@ -46,7 +45,7 @@ function! s:appendAll(a, b) abort "{{{
 endfunction "}}}
 function! s:listToRuntimeAutoload(pathes) abort "{{{
   return index(s:getOptVar('ctrlp_vimfn_indexings'), 'runtime') != -1
-  \    ? s:appendAll(a:pathes, split(globpath(&runtimepath, 'autoload'), '\n'))
+  \    ? s:appendAll(a:pathes, globpath(&runtimepath, 'autoload', 0, 1))
   \    : a:paths
 endfunction "}}}
 function! s:listToBundleAutoload(pathes) abort "{{{
@@ -62,8 +61,11 @@ function! s:makePathes(pathes, loaded) abort "{{{
     let path = s:pathNormalize(path)
     if !has_key(_s, path)
       let _s[path] = 1
-      for path in split(globpath(path, '**/*.vim'), '\v\r\n|\n|\r')
-        if stridx(split(path, 'autoload')[-1], '_') != -1 | continue | endif
+      for path in globpath(path, '**/*.vim', 0, 1)
+        let ubidx = stridx(path, '_')
+        if ubidx != -1 && stridx(path, 'autoload') < ubidx
+          continue
+        endif
         if !has_key(a:loaded, path)
           call add(ret, path)
         endif
@@ -75,20 +77,21 @@ endfunction "}}}
 function! s:findAutoloadFunc(path) abort "{{{
   let [path, ret] = [a:path, []]
   if filereadable(path)
-    let regexp = '\v\C^fu%[nction](\!\s*|\s+)('
-    \ . join(split(split(path, 'autoload')[1], '\v[\/]'), '#')[:-5] . '#[a-zA-Z0-9_]+'
-    \ . ')'
+    let head = join(split(split(path, 'autoload')[1], '\v[\\/]'), '#')[:-5] . '#'
+    let hlen = strlen(head)
     for line in readfile(path)
-      let fuidx = stridx(line, 'fu')    | if fuidx is -1          | continue | endif
-      let idt = strpart(line, 0, fuidx) | if idt !~# '\v^[ \t]*$' | continue | endif
-      let line = strpart(line, fuidx)   | if line !~# regexp      | continue | endif
-      call add(ret, matchlist(line, regexp)[2])
+      let fidx = stridx(line, 'fu')    | if fidx is -1           | continue | endif
+      let idt = strpart(line, 0, fidx) | if idt !~# '\v^[ \t]*$' | continue | endif
+      let spos = stridx(line, head)    | if spos == -1           | continue | endif
+      let epos = match(line, '\v[^a-zA-Z0-9_]', spos + hlen)
+      if epos != -1
+        call add(ret, strpart(line, spos, epos - spos))
+      endif
     endfor
   endif
   return ret
 endfunction "}}}
 function! s:makeTags(pathes) abort "{{{
-  "Todo: if_lua
   let tags = []
   for path in s:makePathes(a:pathes, s:getLoadedScripts())
     call s:appendAll(tags, s:findAutoloadFunc(path))
