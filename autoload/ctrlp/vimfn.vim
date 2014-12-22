@@ -53,10 +53,9 @@ function! s:listToBundleAutoload(pathes) abort "{{{
   \    ? s:appendAll(a:pathes, s:VF.getuserrtpa())
   \    : a:paths
 endfunction "}}}
-function! s:makePathes(pathes, loaded) abort "{{{
+function! s:_makeTags(pathes, loaded, ...) abort "{{{
   " Todo: if_lua
-  let _s = {}
-  let ret = []
+  let [_s, tags] = [{}, []]
   for path in a:pathes
     let path = s:pathNormalize(path)
     if !has_key(_s, path)
@@ -67,12 +66,15 @@ function! s:makePathes(pathes, loaded) abort "{{{
           continue
         endif
         if !has_key(a:loaded, path)
-          call add(ret, path)
+          call s:appendAll(tags, s:findAutoloadFunc(path))
+          if !a:0
+            silent! call ctrlp#progress(printf('%5d : %s', len(tags), path))
+          endif
         endif
       endfor
     endif
   endfor
-  return ret
+  return tags
 endfunction "}}}
 function! s:findAutoloadFunc(path) abort "{{{
   let [path, ret] = [a:path, []]
@@ -91,18 +93,13 @@ function! s:findAutoloadFunc(path) abort "{{{
   endif
   return ret
 endfunction "}}}
-function! s:makeTags(pathes) abort "{{{
-  let tags = []
-  for path in s:makePathes(a:pathes, s:getLoadedScripts())
-    call s:appendAll(tags, s:findAutoloadFunc(path))
-    silent! call ctrlp#progress(len(tags) . ': [indexing/runtime] ' . path)
-  endfor
-  let s:tags = sort(tags)
-  return tags
+function! s:makeTags() abort "{{{
+  return sort(s:_makeTags(s:listToBundleAutoload(s:listToRuntimeAutoload([])), s:getLoadedScripts()))
 endfunction "}}}
 function! s:indexing() abort "{{{
   if s:INDEXD is 1 | return | endif
-  if !empty(s:makeTags(s:listToBundleAutoload(s:listToRuntimeAutoload([]))))
+  let s:tags = s:makeTags()
+  if !empty(s:tags)
     call add(s:Invs, s:VF.Investigator('autoload_rtp'))
     call add(s:Invs, s:VF.Investigator('autoload_user_rtpa'))
   endif
