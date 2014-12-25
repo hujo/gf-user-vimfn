@@ -80,8 +80,7 @@ function! s:pickCursor() abort "{{{
   return s:_pickCursor('\v[a-zA-Z0-9#._:<>]')
 endfunction "}}}
 function! s:pickFname(str) abort "{{{
-  if a:str ==# ''        | return ''    | endif
-  if a:str =~# '\v^\d+$' | return a:str | endif
+  if a:str =~# '\v^\d*$' | return a:str | endif
   let name = matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:.]+')
   while name[-1 :] =~# '\v[:.]'
     let name = name[: -2]
@@ -120,7 +119,7 @@ function! s:pickNumericFunc() abort "{{{
 endfunction "}}}
 function! s:pickWord() "{{{
   let kwrd = s:pickNumericFunc()
-  return kwrd ==# '' ? s:pickFname(s:pickCursor()) : ''
+  return kwrd ==# '' ? s:pickFname(s:pickCursor()) : kwrd
 endfunction "}}}
 "}}}
 

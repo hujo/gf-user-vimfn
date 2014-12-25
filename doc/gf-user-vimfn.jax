@@ -134,7 +134,6 @@ g:loaded_gf_user_vimfn                                *g:loaded_gf_user_vimfn*
     after/plugin が読み込まれる前に
     この値を`1`に設定しておくと`gf-user-vimfn`を`gf-user`に登録しません。
 
-
 g:gf_vimfn_enable_filetypes                       *g:gf_vimfn_enable_filetypes*
 
     gf-user-vimfnの機能を有効にするファイルタイプをリストで指定します。
@@ -144,8 +143,6 @@ g:gf_vimfn_enable_filetypes                       *g:gf_vimfn_enable_filetypes*
     またはこの変数が存在しない場合はデフォルトの値が使用されます。
 >
     "default ['vim', 'vimspec', 'help']
-
-<
 
 g:gf_vimfn_enable_syn                                  *g:gf_vimfn_enable_syn*
 
@@ -186,22 +183,14 @@ g:gf_vimfn_jump_gun                                      *g:gf_vimfn_jump_gun*
 gf#vimfn#open                                     *gf-user-vimfn-examples-open*
 
 マッピング
-
-:Example
 >
-    nnoremap <silent> g1 :<c-u>call gf#vimfn#open()<cr>
+  " Example: define a mapping
+  nnoremap <silent> g1 :<c-u>call gf#vimfn#open()<cr>
 >
 コマンドを定義
-
-:Example
 >
-    command! -nargs=? -bang
-    \ JumpVimFunc
-    \   call gf#vimfn#open(
-    \       <bang>0 ?
-    \       split(string(eval(
-    \           substitute(<q-args>, '\v\([^)]*$', '', ''))), "'")[1] :
-    \       empty(<q-args>) ? 0 : <q-args>)
+  " Example: define a command
+  command! -nargs=? -complete=function JumpVimFunc call gf#vimfn#open(<q-args>)
 <
 ==============================================================================
 更新履歴                                                  *gf-vimfn-changelog*
@@ -217,27 +206,15 @@ gf#vimfn#open                                     *gf-user-vimfn-examples-open*
   - function('1')に対応。
   - それに伴い|g:gf_vimfn_enable_syn|を追加。
 
+2014-12-25
+  - gf#vimfn#find() .. gf-user extention ビジュアルモードに対応。
+
 ==============================================================================
 TODO
 
-1. 2014-08-15 {{{
-  + 関数が存在しない場合の挙動を設定できる様にする
-  + すでにそのファイルを開いている場合にファイルの先頭に飛ばないようにする。
-
-  -  buflisted()を使って判定。
-}}}
-
-2. 2014-08-15
+1. 2014-08-15
   関数が見つからなかった場合のメセージの表示を設定出来るようにする。
     gf#vimfn#open()の場合に限る。
-
-3. 2014-08-15 {{{
-  関数が組み込み関数だった場合にヘルプを開くように設定出来る様にする。
-  - 諦めた
-}}}
-
-4. 2014-12-04
-  テストを書く。
 
 ==============================================================================
 vim:tw=78:fo=tcq2mM:ts=8:ft=help:norl:fdm=marker
