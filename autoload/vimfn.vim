@@ -249,6 +249,7 @@ function! vimfn#import(imports) abort  "{{{
   endif
 endfunction "}}}
 function! vimfn#find(fnName, gators, ...) abort " {{{
+  if a:fnName ==# '' | return 0 | endif
   let fs = {}
   let cache = []
   let d = {'name': a:fnName, 'type': s:type(a:fnName), 'tasks': []}

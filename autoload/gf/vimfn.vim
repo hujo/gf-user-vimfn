@@ -31,16 +31,16 @@ function! s:isEnable() abort "{{{
   endif
   return index(s:getOpt('enable_filetypes'), &filetype) isnot -1
 endfunction "}}}
-function! s:isJumpOK(d) abort "{{{
-  if a:d is 0
-    return 0
-  elseif a:d.line isnot 0 && a:d.col isnot 0
-    return 1
+function! s:sieveJumpGun(d) abort "{{{
+  if     type(a:d) isnot type({})    | return 0
+  elseif get(a:d, 'path', '') ==# '' | return 0
+  elseif get(a:d, 'line', 0) isnot 0
+  \   && get(a:d, 'col', 0)  isnot 0 | return a:d
   endif
   let gun = s:getOpt('jump_gun')
   if     gun == 0 | return 0
-  elseif gun == 1 | return 1
-  elseif gun == 2 | return !buflisted(a:d.path)
+  elseif gun == 1 | return a:d
+  "elseif gun == 2 | return buflisted(a:d.path) ? a:d : 0
   elseif 1        | return 0 | endif
 endfunction "}}}
 "}}}
@@ -80,6 +80,8 @@ function! s:pickCursor() abort "{{{
   return s:_pickCursor('\v[a-zA-Z0-9#._:<>]')
 endfunction "}}}
 function! s:pickFname(str) abort "{{{
+  if a:str ==# ''        | return ''    | endif
+  if a:str =~# '\v^\d+$' | return a:str | endif
   let name = matchstr(a:str, '\v(\c\<(sid|snr)\>)?\C[a-zA-Z0-9#_:.]+')
   while name[-1 :] =~# '\v[:.]'
     let name = name[: -2]
@@ -116,6 +118,10 @@ function! s:pickNumericFunc() abort "{{{
 
   return ''
 endfunction "}}}
+function! s:pickWord() "{{{
+  let kwrd = s:pickNumericFunc()
+  return kwrd ==# '' ? s:pickFname(s:pickCursor()) : ''
+endfunction "}}}
 "}}}
 
 function! s:SID(...) abort "{{{
@@ -124,6 +130,16 @@ function! s:SID(...) abort "{{{
 endfunction "}}}
 function! s:_getVar(var) abort "{{{
   return s:[a:var]
+endfunction "}}}
+function! s:gfWord(except) abort "{{{
+  if a:except ==# '' | return '' | endif
+  let [st, ed] = [stridx(a:except, '"'), strridx(a:except, '"')]
+  if (st is -1 || ed is -1) || st is ed
+    return ''
+  else
+    let word = strpart(a:except, st + 1, ed - st - 1)
+    return expand('<cfile>') ==# word ? s:pickWord() : word
+  endif
 endfunction "}}}
 
 function! s:Investigator_autoload_current() abort "{{{
@@ -174,18 +190,8 @@ call add(s:Investigators, s:Investigator_autoload_current())
 call add(s:Investigators, s:Investigator('vital_help'))
 call add(s:Investigators, s:Investigator_current_file())
 
-function! s:find(...) abort "{{{
-  if a:0 > 0 && a:1 isnot 0
-    let kwrd = a:1 =~# '\v^\d+$' ? a:1 : s:pickFname(a:1)
-  else
-    let kwrd = s:pickNumericFunc()
-    if kwrd ==# ''
-      let kwrd = s:pickFname(s:pickCursor())
-    endif
-  endif
-  let ret = vimfn#find(kwrd, s:Investigators)
-  "echoe PP(l:)
-  return s:isJumpOK(empty(ret) ? 0 : ret) ? ret : 0
+function! s:find(kwrd) abort "{{{
+  return s:sieveJumpGun(vimfn#find(s:pickFname(a:kwrd), s:Investigators))
 endfunction "}}}
 
 " Autoload Functions {{{
@@ -193,12 +199,10 @@ function! gf#vimfn#sid(...) abort "{{{
   return call(function('s:SID'), a:000)
 endfunction "}}}
 function! gf#vimfn#find(...) abort "{{{
-  if s:isEnable()
-    return call('s:find', a:000)
-  endif
+  if s:isEnable() | return s:find(s:gfWord(v:exception)) | endif
 endfunction "}}}
 function! gf#vimfn#open(...) abort "{{{
-  let d = call('s:find', a:000)
+  let d = s:find(get(a:000, 0, s:pickWord()))
   if d isnot 0
     exe s:getOpt('open_action') d.path
     call cursor(d.line, d.col)
