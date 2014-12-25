@@ -44,7 +44,7 @@ autoload関数 |autoload|
 >
     call gf#user#try()
          ^  cursor ^
-
+>
 ------------------------------------------------------------------------------
 スクリプトローカル関数 |local-function| |script-local|
 >
@@ -77,7 +77,6 @@ autoload関数 |autoload|
     例えば以下のようにグローバル変数にdictが入っている場合。
 >
     let g:V = vital#of('vital')
-
     call g:V.import('Web.HTTP')
          ^ cursor ^
 <
@@ -104,11 +103,7 @@ autoload関数 |autoload|
 ------------------------------------------------------------------------------
 関数                                                  *gf-user-vimfn-functions*
 
-gf#vimfn#find([{keyword}])                                    *gf#vimfn#find()*
-    主に`gf#user#try()`から呼ばれることを想定しています。
-
 gf#vimfn#open([{keyword}])                                    *gf#vimfn#open()*
-    この関数は`gf#user#try()`から呼ばれることを想定していません。
 
     関数が見つかった場合|g:gf_vimfn_open_action|に指定された開き方で
     ファイルを開きます。
@@ -143,7 +138,7 @@ g:gf_vimfn_enable_filetypes                       *g:gf_vimfn_enable_filetypes*
     またはこの変数が存在しない場合はデフォルトの値が使用されます。
 >
     "default ['vim', 'vimspec', 'help']
-
+>
 g:gf_vimfn_enable_syn                                  *g:gf_vimfn_enable_syn*
 
     カーソル位置のシンタックスの名前がvimで始まっている場合に
@@ -175,7 +170,6 @@ g:gf_vimfn_jump_gun                                      *g:gf_vimfn_jump_gun*
 >
     "default 0
 <
-
 ==============================================================================
 使用例                                                 *gf-user-vimfn-examples*
 

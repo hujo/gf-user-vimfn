@@ -201,7 +201,7 @@ function! gf#vimfn#find(...) abort "{{{
   if s:isEnable() | return s:find(s:gfWord(v:exception)) | endif
 endfunction "}}}
 function! gf#vimfn#open(...) abort "{{{
-  let d = s:find(get(a:000, 0, s:pickWord()))
+  let d = s:find(!a:0 || a:1 is 0 ? s:pickWord() : a:1)
   if d isnot 0
     exe s:getOpt('open_action') d.path
     call cursor(d.line, d.col)
