@@ -20,16 +20,13 @@ function! s:redir(cmd, ...) abort "{{{
   return a:0 && a:1 ? split(ret, '\v\r\n|\n|\r') : ret
 endfunction "}}}
 function! s:getuserrtpa() abort "{{{
-  let rtpa = []
-  let home = expand('~')
-  let dotvim = isdirectory(home . '/.vim') ? home . '/.vim' : isdirectory(home . '/vimfiles') ? home . '/vimfiles' : ''
-  if dotvim !=# ''
-    let bundle = isdirectory(dotvim . '/bundle') ? dotvim . '/bundle' : ''
-    if bundle !=# ''
-      let rtpa = rtpa + globpath(bundle, '*/autoload', 0, 1)
+  for pd in ['~/.vim/bundle', '~/vimfiles/bundle', get(g:, 'plug_home', '')]
+    if type(pd) is type('') && isdirectory(expand(pd))
+      return glob(pd . '/*/autoload', 0, 1)
     endif
-  endif
-  return rtpa
+    unlet! pd
+  endfor
+  return []
 endfunction "}}}
 function! s:type(fnName) abort "{{{
   let [name, prefix, _] = [a:fnName, a:fnName[:1], s:FUNCTYPE]

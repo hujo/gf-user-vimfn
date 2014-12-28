@@ -47,7 +47,7 @@ endfunction "}}}
 " pick word functions {{{
 function! s:_pickCursor(pat, ...) abort "{{{
   let pat = a:pat
-  let [line, ret] = [getline(line('.')), '']
+  let [line, ret] = [getline('.'), '']
   if !get(a:000, 0, 0)
     let line = join(split(line, '\v\.\.', 1), '  ')
   endif
@@ -88,7 +88,7 @@ function! s:pickFname(str) abort "{{{
   return name =~# '\v^\d+$' ? '' : name
 endfunction "}}}
 function! s:_pickNumFuncPP() abort "{{{
-  let [line, col] = [getline(line('.')), col('.') - 1]
+  let [line, col] = [getline('.'), col('.') - 1]
   let cpos = col
   let regc = '\v\C[function''()0-9]'
   let regl = '\v\C^function\(''\d+''\)'
@@ -190,7 +190,7 @@ call add(s:Investigators, s:Investigator('vital_help'))
 call add(s:Investigators, s:Investigator_current_file())
 
 function! s:find(kwrd) abort "{{{
-  return s:sieveJumpGun(vimfn#find(s:pickFname(a:kwrd), s:Investigators))
+  return s:sieveJumpGun(vimfn#find(a:kwrd, s:Investigators))
 endfunction "}}}
 
 " Autoload Functions {{{
