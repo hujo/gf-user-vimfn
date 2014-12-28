@@ -173,23 +173,6 @@ function! s:Investigator_autoload_rtp() abort "{{{
 
   return gator
 endfunction "}}}
-function! s:Investigator_autoload_lazy() abort "{{{
-  let gator = extend({
-  \ 'name': 'autoload_lazy',
-  \ 'description': 'search the autoload function from neobundle lazy plugin pathes',
-  \}, s:Investigator_autoload_base())
-
-  function! gator.tasks(d)
-    if exists('*neobundle#_get_installed_bundles')
-      let lazy = map(filter(neobundle#_get_installed_bundles({}), 'v:val.lazy'), 'v:val.path')
-      if len(lazy)
-        return self._tasks(a:d, join(lazy, ','))
-      endif
-    endif
-  endfunction
-
-  return gator
-endfunction "}}}
 function! s:Investigator_autoload_user_rtpa() abort "{{{
   let gator = extend({
   \ 'name': 'autoload_user_rtpa',

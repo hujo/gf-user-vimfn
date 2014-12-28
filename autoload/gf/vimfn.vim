@@ -184,7 +184,7 @@ endfunction "}}}
 let s:Investigators = []
 call add(s:Investigators, s:Investigator('exists_function'))
 call add(s:Investigators, s:Investigator('autoload_rtp'))
-call add(s:Investigators, s:Investigator('autoload_lazy'))
+call add(s:Investigators, s:Investigator('autoload_user_rtpa'))
 call add(s:Investigators, s:Investigator_autoload_current())
 call add(s:Investigators, s:Investigator('vital_help'))
 call add(s:Investigators, s:Investigator_current_file())
