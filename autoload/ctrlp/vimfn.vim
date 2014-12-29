@@ -61,7 +61,7 @@ function! s:_makeTags(pathes, loaded, ...) abort "{{{
     if !has_key(_s, path)
       let _s[path] = 1
       for path in globpath(path, '**/*.vim', 0, 1)
-        let ubidx = stridx(path, '_')
+        let ubidx = match(path, '\v[\\/]_')
         if ubidx != -1 && stridx(path, 'autoload') < ubidx
           continue
         endif
