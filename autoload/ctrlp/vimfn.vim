@@ -28,7 +28,7 @@ function! s:getOptVar(name, ...) abort "{{{
   return a:0 && type(a:1) == type('') ? optvar[a:1] : optvar
 endfunction "}}}
 function! s:pathNormalize(path) abort "{{{
-  let path = tr(a:path, '\', '/')
+  let path = join(split(a:path, '\v[\\/]+', 1), '/')
   return path[0] ==# '/' ? path : path[2:]
 endfunction "}}}
 function! s:getLoadedScripts() abort "{{{
