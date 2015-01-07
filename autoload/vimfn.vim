@@ -153,10 +153,10 @@ function! s:Investigator_autoload_base() abort "{{{
 
   function! gator._tasks(d, base)
     let t = join(split(a:d.name, '#')[:-2], '/') . '.vim'
-    for path in (globpath(a:base, 'autoload/' . t, 0, 1)
-    \          + globpath(a:base, 'plugin/' . t, 0, 1))
-      return [{'name': a:d.name, 'path': path, 'type': s:FUNCTYPE.AUTOLOAD}]
-    endfor
+    return map(
+    \   globpath(a:base, 'autoload/' . t, 0, 1)
+    \ + globpath(a:base, 'plugin/' . t, 0, 1)
+    \ , '{''name'': a:d.name, ''path'': v:val, ''type'': s:FUNCTYPE.AUTOLOAD}' )
   endfunction
 
   return gator
