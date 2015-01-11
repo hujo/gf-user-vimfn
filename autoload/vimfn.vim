@@ -136,10 +136,14 @@ function! s:Investigator_exists_function() abort "{{{
     if exists('*' . _name)
       let _lines =
       \   map(s:redir('1verbose function ' . _name, 1), 'substitute(v:val, ''\v^(\d+)?\s+'', '''', '''')')
-      let task.path = matchstr(remove(_lines, 1), '\v\f+$')
-      " path is established
-      let a:d.path = task.path
-      return [extend({'lines': _lines, 'is_cache': len(_lines) > 0}, task), task]
+      " if len < 2
+      " function has not been declared in the file
+      if len(_lines) > 2
+        let task.path = matchstr(remove(_lines, 1), '\v\f+$')
+        " path is established
+        let a:d.path = task.path
+        return [extend({'lines': _lines, 'is_cache': len(_lines) > 0}, task), task]
+      endif
     endif
   endfunction
 

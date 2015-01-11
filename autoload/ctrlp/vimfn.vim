@@ -7,7 +7,6 @@ let g:loaded_ctrlp_vimfn = 1
 
 let s:ctrlp_vimfn_indexings = ['runtime', 'bundle']
 
-let s:LOADED_SCRIPTS = []
 let s:INDEXD = 0
 let s:VF = vimfn#import(['Investigator', 'redir', 'getuserrtpa'])
 let s:Invs = [s:VF.Investigator('exists_function')]
@@ -111,27 +110,29 @@ function! ctrlp#vimfn#id() abort "{{{
 endfunction "}}}
 function! ctrlp#vimfn#init() abort "{{{
   call s:indexing()
-  let loaded = s:VF.redir('scriptnames', 1)
-  if len(s:LOADED_SCRIPTS) != len(loaded)
-    for line in s:VF.redir('function', 1)
-      let line = strpart(strpart(line, 0, stridx(line, '(')), 9)
-      if index(s:tags, line) == -1
-        call add(s:tags, line)
-      endif
-    endfor
-    let s:tags = sort(s:tags)
-    let s:LOADED_SCRIPTS = loaded
-  endif
-  return s:tags
+  let ret = copy(s:tags)
+  for line in s:VF.redir('function', 1)
+    let line = strpart(strpart(line, 0, stridx(line, '(')), 9)
+    if index(ret, line) == -1
+      call add(ret, line)
+    endif
+  endfor
+  return reverse(sort(ret))
 endfunction "}}}
 function! ctrlp#vimfn#accept(mode, str) abort "{{{
+  let tail = str2nr(matchstr(ctrlp#call('s:tail'), '\v^\s*\+\s*\d+\s*$'))
   call ctrlp#exit()
   let d = vimfn#find(a:str, s:Invs)
   if has_key(d, 'path') && has_key(d, 'line')
-    call ctrlp#acceptfile({'action': a:mode, 'line': d.path, 'tail': d.line})
-    if has_key(d, 'col') && d.col != 0
+    let tail = tail + d.line
+    call ctrlp#acceptfile(a:mode, d.path, tail)
+    if tail == d.line && get(d, 'col', 0)
       execute 'normal!' (d.col . '|')
     endif
+  else
+    echoh ErrorMsg
+    echom printf('sorry, not able to find the %s', a:str)
+    echoh Normal
   endif
 endfunction "}}}
 " vim:set et sts=2 ts=2 sw=2 fdm=marker:
