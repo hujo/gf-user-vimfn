@@ -117,7 +117,7 @@ function! ctrlp#vimfn#init() abort "{{{
       call add(ret, line)
     endif
   endfor
-  return reverse(sort(ret))
+  return reverse(sort(ret, 'i'))
 endfunction "}}}
 function! ctrlp#vimfn#accept(mode, str) abort "{{{
   let tail = str2nr(matchstr(ctrlp#call('s:tail'), '\v^\s*\+\s*\d+\s*$'))
