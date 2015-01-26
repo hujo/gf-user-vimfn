@@ -45,12 +45,12 @@ endfunction "}}}
 function! s:listToRuntimeAutoload(pathes) abort "{{{
   return index(s:getOptVar('ctrlp_vimfn_indexings'), 'runtime') != -1
   \    ? s:appendAll(a:pathes, globpath(&runtimepath, 'autoload', 0, 1))
-  \    : a:paths
+  \    : a:pathes
 endfunction "}}}
 function! s:listToBundleAutoload(pathes) abort "{{{
   return index(s:getOptVar('ctrlp_vimfn_indexings'), 'bundle') != -1
   \    ? s:appendAll(a:pathes, s:VF.getuserrtpa())
-  \    : a:paths
+  \    : a:pathes
 endfunction "}}}
 function! s:_makeTags(pathes, loaded, ...) abort "{{{
   " Todo: if_lua
