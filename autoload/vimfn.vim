@@ -4,6 +4,15 @@ let s:save_cpo = &cpoptions
 set cpoptions&vim
 "}}}
 
+if v:version < 704
+  function! s:globpath(base, path, ...) "{{{
+    let [suf, islist] = [get(a:000, 0, 0), get(a:000, 1, 0)]
+    let ret = globpath(a:base, a:path, suf)
+    return islist ? split(ret, '\v\r\n|\r|\n') : ret
+  endfunction "}}}
+else
+  let s:globpath = function('globpath')
+endif
 function! s:SID(...) abort "{{{
   let id = matchstr(string(function('s:SID')), '\C\v\<SNR\>\d+_')
   return a:0 < 1 ? id : id . a:1
@@ -158,8 +167,8 @@ function! s:Investigator_autoload_base() abort "{{{
   function! gator._tasks(d, base)
     let t = join(split(a:d.name, '#')[:-2], '/') . '.vim'
     return map(
-    \   globpath(a:base, 'autoload/' . t, 0, 1)
-    \ + globpath(a:base, 'plugin/' . t, 0, 1)
+    \   s:globpath(a:base, 'autoload/' . t, 0, 1)
+    \ + s:globpath(a:base, 'plugin/' . t, 0, 1)
     \ , '{''name'': a:d.name, ''path'': v:val, ''type'': s:FUNCTYPE.AUTOLOAD}' )
   endfunction
 
@@ -205,7 +214,7 @@ function! s:Investigator_vital_help() abort "{{{
     let t = ['__latest__'] + split(a:d.name, '\v\.')[1:]
     let p = 'autoload/vital/' . join(t[:-2], '/') . '.vim'
     let name = t[-1]
-    let path = get(globpath(&runtimepath, p, 0, 1), 0, '')
+    let path = get(s:globpath(&runtimepath, p, 0, 1), 0, '')
     if path !=# '' && name !=# ''
       return [{'name': 's:' . name, 'path': path, 'type': s:FUNCTYPE.SCRIPT}]
     endif

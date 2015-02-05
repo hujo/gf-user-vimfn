@@ -22,6 +22,15 @@ if !exists('s:Id')
   let s:Id = g:ctrlp_builtins + len(g:ctrlp_ext_vars)
 endif
 
+if v:version < 704
+  function! s:globpath(base, path, ...) "{{{
+    let [suf, islist] = [get(a:000, 0, 0), get(a:000, 1, 0)]
+    let ret = globpath(a:base, a:path, suf)
+    return islist ? split(ret, '\v\r\n|\r|\n') : ret
+  endfunction "}}}
+else
+  let s:globpath = function('globpath')
+endif
 function! s:getOptVar(name, ...) abort "{{{
   let optvar = get(g:, a:name, s:{a:name})
   return a:0 && type(a:1) == type('') ? optvar[a:1] : optvar
@@ -44,7 +53,7 @@ function! s:appendAll(a, b) abort "{{{
 endfunction "}}}
 function! s:listToRuntimeAutoload(pathes) abort "{{{
   return index(s:getOptVar('ctrlp_vimfn_indexings'), 'runtime') != -1
-  \    ? s:appendAll(a:pathes, globpath(&runtimepath, 'autoload', 0, 1))
+  \    ? s:appendAll(a:pathes, s:globpath(&runtimepath, 'autoload', 0, 1))
   \    : a:pathes
 endfunction "}}}
 function! s:listToBundleAutoload(pathes) abort "{{{
@@ -59,7 +68,7 @@ function! s:_makeTags(pathes, loaded, ...) abort "{{{
     let path = s:pathNormalize(path)
     if !has_key(_s, path)
       let _s[path] = 1
-      for path in globpath(path, '**/*.vim', 0, 1)
+      for path in s:globpath(path, '**/*.vim', 0, 1)
         let ubidx = match(path, '\v[\\/]_')
         if ubidx != -1 && stridx(path, 'autoload') < ubidx
           continue
@@ -117,7 +126,7 @@ function! ctrlp#vimfn#init() abort "{{{
       call add(ret, line)
     endif
   endfor
-  return reverse(sort(ret, 'i'))
+  return reverse(sort(ret))
 endfunction "}}}
 function! ctrlp#vimfn#accept(mode, str) abort "{{{
   let tail = str2nr(matchstr(ctrlp#call('s:tail'), '\v^\s*\+\s*\d+\s*$'))
