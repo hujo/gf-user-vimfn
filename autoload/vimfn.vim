@@ -31,7 +31,7 @@ endfunction "}}}
 function! s:getuserrtpa() abort "{{{
   for pd in ['~/.vim/bundle', '~/vimfiles/bundle', get(g:, 'plug_home', '')]
     if type(pd) is type('') && isdirectory(expand(pd))
-      return glob(pd . '/*/autoload', 0, 1)
+      return s:globpath(pd, '/*/autoload', 0, 1)
     endif
     unlet! pd
   endfor
