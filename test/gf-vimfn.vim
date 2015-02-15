@@ -11,10 +11,11 @@ function! s:pick(...) "{{{
   for test in tests
     let lnum += 1
     for col in map(keys(test), 'str2nr(v:val)')
-      call cursor(lnum, col)
+      exe printf('normal %dG%s', lnum, repeat('l', col - 1))
       let res = F()
       call s:assert.equals(res, test[col],
-      \ printf('%d line %d col should [%s] but res is [%s] at %s', lnum, col, test[col], res, getline(lnum)))
+      \ printf('%d line %d col should [%s] but res is [%s] at %s, col is %s'
+      \   , lnum, col, test[col], res, getline(lnum), getline('.')[col('.') - 1]))
     endfor
   endfor
   call s:assert.equals(lnum, a:2 + len(tests)) " test for test : forループを実行したか？
