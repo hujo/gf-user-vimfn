@@ -123,9 +123,11 @@ function! s:pickWord() "{{{
 endfunction "}}}
 "}}}
 
+function! s:SIDCreate() "{{{
+  let s:_SID = matchstr(expand('<sfile>'), '\v\C\<SNR\>\d+_')
+endfunction "}}}
 function! s:SID(...) abort "{{{
-  let id = matchstr(string(function('s:SID')), '\C\v\<SNR\>\d+_')
-  return a:0 < 1 ? id : id . a:1
+  return a:0 < 1 ? s:_SID : s:_SID . a:1
 endfunction "}}}
 function! s:_getVar(var) abort "{{{
   return s:[a:var]
@@ -181,6 +183,7 @@ function! s:Investigator_current_file() abort "{{{
   return gator
 endfunction "}}}
 
+call s:SIDCreate()
 let s:Investigators = []
 call add(s:Investigators, s:Investigator('exists_function'))
 call add(s:Investigators, s:Investigator('autoload_rtp'))

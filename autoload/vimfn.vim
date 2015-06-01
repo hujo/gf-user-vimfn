@@ -13,9 +13,8 @@ if v:version < 704
 else
   let s:globpath = function('globpath')
 endif
-function! s:SID(...) abort "{{{
-  let id = matchstr(string(function('s:SID')), '\C\v\<SNR\>\d+_')
-  return a:0 < 1 ? id : id . a:1
+function! s:SID() "{{{
+  let s:_SID = matchstr(expand('<sfile>'), '\v\C\<SNR\>\d+_')
 endfunction "}}}
 function! s:redir(cmd, ...) abort "{{{
   let [_list, ret, &list] = [&list, '', 0]
@@ -224,7 +223,7 @@ function! s:Investigator_vital_help() abort "{{{
 endfunction "}}}
 "}}}
 
-
+call s:SID()
 let s:FUNCTYPE = {
 \ 'AUTOLOAD': 1, 'GLOBAL': 2, 'LOCAL': 3, 'SCRIPT': 4,
 \ 'SNR': 5, 'G_DICT': 6, 'NUM': 7, 'DICT': 0  }
@@ -234,10 +233,10 @@ function! vimfn#FUNCTYPE() abort "{{{
 endfunction "}}}
 function! vimfn#import(imports) abort  "{{{
   if type(a:imports) is type('')
-    return function(s:SID(a:imports))
+    return function(s:_SID .a:imports)
   elseif type(a:imports) is type([])
     let ret = {}
-    for name in a:imports | let ret[name] = function(s:SID(name)) | endfor
+    for name in a:imports | let ret[name] = function(s:_SID . name) | endfor
     return ret
   endif
 endfunction "}}}
