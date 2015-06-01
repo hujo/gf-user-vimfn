@@ -1,9 +1,18 @@
 set noswapfile nobackup
 "set fileencodings=utf-8,cp932,euc-jp,default,latin
 function! T2T(F, ...) "To test two times by changing the option
-  set ic re=1 magic
+  set ic magic
+  if exists('&re')
+    set re=1
+  endif
   call call(a:F, a:000)
-  set noic re=2 nomagic
+  set noic nomagic
+  if exists('&re')
+    set re=2
+  endif
   call call(a:F, a:000)
-  set ic&vim re&vim magic&vim
+  set ic&vim magic&vim
+  if exists('&re')
+    set re&vim
+  endif
 endfunction
