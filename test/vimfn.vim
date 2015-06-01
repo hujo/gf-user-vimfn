@@ -6,6 +6,14 @@ let s:assert = themis#helper('assert')
 let s:suite = themis#suite('vimfn.vim')
 let s:test = {}
 
+function! s:SID()
+  let s:_SID = matchstr(expand('<sfile>'), '\v\C\<SNR\>\d+_')
+endfunction
+function! s:function(fname)
+  return function(s:_SID . a:fname)
+endfunction
+call s:SID()
+
 function! s:_data_type_() "{{{
   let _ = vimfn#FUNCTYPE()
   let [_A, _G, _L, _S, _R, _GD, _D, _N]
@@ -37,7 +45,7 @@ function! s:suite.type() "{{{
       call s:assert.equals(res, d[1], printf('fail %s [%d, %d]', d[0], d[1], res))
     endfor
   endfunction
-  call T2T(function('s:type'))
+  call T2T(s:function('type'))
 endfunction "}}}
 function! s:suite.identification() "{{{
   "Todo: [type = NUM]
@@ -57,7 +65,7 @@ function! s:suite.identification() "{{{
       call s:assert.equals(1, F(d[0], d[1]), string(d))
     endfor
   endfunction
-  call T2T(function('s:identification'))
+  call T2T(s:function('identification'))
 endfunction "}}}
 function! s:suite.interrogation() "{{{
   function! s:interrogation(...)
@@ -72,7 +80,7 @@ function! s:suite.interrogation() "{{{
     endfor
     bdelete %
   endfunction
-  call T2T(function('s:interrogation'),
+  call T2T(s:function('interrogation'),
   \   's:test_1', 's:test_2', 'testplug#test#test_3', 'Test_5', 's:test_7'
   \)
 endfunction "}}}
@@ -91,7 +99,7 @@ function! s:suite.__Investigator__()
     let &rtp .= ',' . s:DIR . 'test_plugin/'
     let file = testplug#test#load()
     e `=file`
-    call T2T(function('s:Investigator_exists_function'),
+    call T2T(s:function('Investigator_exists_function'),
     \  [
     \    'testplug#test#test_3',
     \    'testplug#test#test_4',

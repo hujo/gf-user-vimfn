@@ -233,7 +233,7 @@ function! vimfn#FUNCTYPE() abort "{{{
 endfunction "}}}
 function! vimfn#import(imports) abort  "{{{
   if type(a:imports) is type('')
-    return function(s:_SID .a:imports)
+    return function(s:_SID . a:imports)
   elseif type(a:imports) is type([])
     let ret = {}
     for name in a:imports | let ret[name] = function(s:_SID . name) | endfor

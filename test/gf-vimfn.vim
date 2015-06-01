@@ -5,6 +5,14 @@ let s:suite = themis#suite('gf-vimfn.vim')
 
 let s:FILE = expand('<sfile>:p')
 
+function! s:SID()
+  let s:_SID = matchstr(expand('<sfile>'), '\v\C\<SNR\>\d+_')
+endfunction
+function! s:function(fname)
+  return function(s:_SID . a:fname)
+endfunction
+call s:SID()
+
 function! s:pick(...) "{{{
   let [F, lnum, tests] = a:000
   e ++enc=utf-8 `=s:FILE`
@@ -42,8 +50,8 @@ function! s:suite.pickCursor() "{{{
   \,{1: '', 2: 's:func', 8: ''}
   \]
   call T2T(
-  \ function('s:pick'),
-  \ function('s:pickcursor_pickfname'),
+  \ s:function('pick'),
+  \ s:function('pickcursor_pickfname'),
   \ s:pickCursor_lnum, tests)
 endfunction "}}}
 let s:pickNumericFunc_lnum = expand('<slnum>')
@@ -57,7 +65,7 @@ function! s:suite.pickNumericFunc() "{{{
   \,{1: '', 35: '342', 38: ''}
   \]
   call T2T(
-  \ function('s:pick'),
+  \ s:function('pick'),
   \ function(gf#vimfn#sid('pickNumericFunc')),
   \ s:pickNumericFunc_lnum, tests
   \)
