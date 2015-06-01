@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/hujo/gf-user-vimfn.svg?branch=master)](https://travis-ci.org/hujo/gf-user-vimfn)
+
 ## gf-user-vimfn
 
 - Extention of [vim-gf-user](https://github.com/kana/vim-gf-user)
