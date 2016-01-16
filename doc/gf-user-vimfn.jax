@@ -158,7 +158,9 @@ g:gf_vimfn_open_action                                 *g:gf_vimfn_open_action*
 
     |gf#vimfn#open()|でのファイルの開き方を文字列で指定します。
 >
-    "default 'tab drop'
+    "default
+    " has('gui') == 1 の場合 'tab drop'
+    " has('gui') == 0 の場合 'edit'
 <
 g:gf_vimfn_jump_gun                                      *g:gf_vimfn_jump_gun*
 

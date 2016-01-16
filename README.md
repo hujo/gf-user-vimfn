@@ -51,7 +51,7 @@ call gf#vimfn#open('1')
 
 ``` vim
 " Setting: set the how to open the file
-"   default 'tab drop'
+"   default has('gui') ? 'tab drop' : 'edit'
 let g:gf_vimfn_open_action = 'split'
 
 " Example: define a mapping

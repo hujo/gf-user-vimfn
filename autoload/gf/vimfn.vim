@@ -9,7 +9,7 @@ let s:Investigator = vimfn#import('Investigator')
 
 let s:DEFAULT_OPTS = {
 \  'gf_vimfn_enable_filetypes': ['vim', 'vimspec', 'help'],
-\  'gf_vimfn_open_action': 'tab drop',
+\  'gf_vimfn_open_action': has('gui') ? 'tab drop' : 'edit',
 \  'gf_vimfn_jump_gun': 0,
 \  'gf_vimfn_enable_syn': 1
 \}

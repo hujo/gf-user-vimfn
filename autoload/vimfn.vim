@@ -4,15 +4,15 @@ let s:save_cpo = &cpoptions
 set cpoptions&vim
 "}}}
 
-if v:version < 704
+"if v:version < 704
   function! s:globpath(base, path, ...) "{{{
     let [suf, islist] = [get(a:000, 0, 0), get(a:000, 1, 0)]
     let ret = globpath(a:base, a:path, suf)
     return islist ? split(ret, '\v\r\n|\r|\n') : ret
   endfunction "}}}
-else
-  let s:globpath = function('globpath')
-endif
+"else
+"  let s:globpath = function('globpath')
+"endif
 function! s:SID() "{{{
   let s:_SID = matchstr(expand('<sfile>'), '\v\C\<SNR\>\d+_')
 endfunction "}}}
