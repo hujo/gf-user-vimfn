@@ -22,15 +22,11 @@ if !exists('s:Id')
   let s:Id = g:ctrlp_builtins + len(g:ctrlp_ext_vars)
 endif
 
-if v:version < 704
-  function! s:globpath(base, path, ...) "{{{
-    let [suf, islist] = [get(a:000, 0, 0), get(a:000, 1, 0)]
-    let ret = globpath(a:base, a:path, suf)
-    return islist ? split(ret, '\v\r\n|\r|\n') : ret
-  endfunction "}}}
-else
-  let s:globpath = function('globpath')
-endif
+function! s:globpath(base, path, ...) "{{{
+  let [suf, islist] = [get(a:000, 0, 0), get(a:000, 1, 0)]
+  let ret = globpath(a:base, a:path, suf)
+  return islist ? split(ret, '\v\r\n|\r|\n') : ret
+endfunction "}}}
 function! s:getOptVar(name, ...) abort "{{{
   let optvar = get(g:, a:name, s:{a:name})
   return a:0 && type(a:1) == type('') ? optvar[a:1] : optvar
