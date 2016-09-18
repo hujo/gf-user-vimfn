@@ -210,7 +210,7 @@ function! s:Investigator_vital_help() abort "{{{
   \}
 
   function! gator.tasks(d)
-    let t = ['__latest__'] + split(a:d.name, '\v\.')[1:]
+    let t = ['__vital__'] + split(a:d.name, '\v\.')[1:]
     let p = 'autoload/vital/' . join(t[:-2], '/') . '.vim'
     let name = t[-1]
     let path = get(s:globpath(&runtimepath, p, 0, 1), 0, '')
